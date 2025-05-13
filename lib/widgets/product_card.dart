@@ -23,8 +23,7 @@ class ProductCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 160,
-        margin: const EdgeInsets.symmetric(horizontal: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -37,44 +36,72 @@ class ProductCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Row(
           children: [
-            Expanded(
-              child: Image.asset(
+            // Imagen
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
                 image,
-                fit: BoxFit.contain,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.broken_image, size: 64),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              name,
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              maxLines: 2,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              description,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('\$${price.toStringAsFixed(2)}',
+            const SizedBox(width: 12),
+            // Información
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 14)),
-                IconButton(
-                  onPressed: () {
-                    // Puedes implementar función de agregar al carrito
-                  },
-                  icon: const Icon(Icons.add_circle, color: Colors.teal),
-                )
-              ],
-            )
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () {}, // disminuir cantidad
+                        icon: const Icon(Icons.remove_circle_outline,
+                            size: 20, color: Colors.grey),
+                      ),
+                      const Text(
+                        '1',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      IconButton(
+                        onPressed: () {}, // aumentar cantidad
+                        icon: const Icon(Icons.add_circle_outline,
+                            size: 20, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            // Precio
+            Text(
+              '\$${price.toStringAsFixed(2)}',
+              style: const TextStyle(
+                color: Colors.teal,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
           ],
         ),
       ),

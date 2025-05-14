@@ -1,9 +1,9 @@
-// lib/views/add_product_view.dart
+// lib/views/product/add_product_view.dart
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/product_model.dart';
-import '../services/api_service.dart';
+import '../../models/product_model.dart';
+import '../../services/firebase_product_service.dart';
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;

@@ -1,25 +1,26 @@
-// lib/views/inventory_manage_view.dart
+// lib/views/product/product_manage_view.dart
 
-import 'package:app_farmacia/views/edit_product_view.dart';
+import 'package:app_farmacia/views/product/detail_product_view.dart';
+import 'package:app_farmacia/views/product/edit_product_view.dart';
 import 'package:flutter/material.dart';
-import '../models/product_model.dart';
-import '../services/api_service.dart';
+import '../../models/product_model.dart';
+import '../../services/firebase_product_service.dart';
 import 'add_product_view.dart';
 
-class InventoryManageView extends StatefulWidget {
-  const InventoryManageView({super.key});
+class ProductManageView extends StatefulWidget {
+  const ProductManageView({super.key});
 
   @override
-  State<InventoryManageView> createState() => _InventoryManageViewState();
+  State<ProductManageView> createState() => _ProductManageViewState();
 }
 
-class _InventoryManageViewState extends State<InventoryManageView> {
+class _ProductManageViewState extends State<ProductManageView> {
   final service = FirebaseProductService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Gestión del Inventario')),
+      appBar: AppBar(title: const Text('Gestión de Productos')),
       body: FutureBuilder<List<ProductModel>>(
         future: service.getAllProducts(),
         builder: (context, snapshot) {
@@ -43,13 +44,13 @@ class _InventoryManageViewState extends State<InventoryManageView> {
                 ),
                 title: Text(p.name),
                 subtitle: Text(
-                    'Stock: ${p.stock}  |  \$${p.price.toStringAsFixed(2)}'),
+                    'Cantidad: ${p.stock}  |  Bs ${p.price.toStringAsFixed(2)}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Editar producto',
+                      tooltip: 'Editar Producto',
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -63,7 +64,7 @@ class _InventoryManageViewState extends State<InventoryManageView> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Eliminar producto',
+                      tooltip: 'Eliminar Producto',
                       onPressed: () async {
                         await service.deleteProduct(p.id);
                         setState(() {});
@@ -71,12 +72,23 @@ class _InventoryManageViewState extends State<InventoryManageView> {
                     ),
                   ],
                 ),
-                onTap: () {
+                onTap: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cargando detalle...'),
+                      duration: Duration(milliseconds: 800),
+                      backgroundColor: Colors.teal,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.all(16),
+                    ),
+                  );
+                  await Future.delayed(const Duration(milliseconds: 800));
+                  if (!context.mounted) return;
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AddProductView()),
-                  ).then(
-                      (_) => setState(() {})); // refrescar lista tras registrar
+                    MaterialPageRoute(
+                        builder: (_) => DetailProductView(product: p)),
+                  );
                 },
               );
             },
@@ -84,7 +96,7 @@ class _InventoryManageViewState extends State<InventoryManageView> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        tooltip: 'Agregar producto',
+        tooltip: 'Agregar Producto',
         onPressed: () {
           Navigator.push<bool>(
             context,

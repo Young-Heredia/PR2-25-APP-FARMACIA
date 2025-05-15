@@ -252,7 +252,9 @@ class _HomeViewState extends State<HomeView> {
             } else if (index == 2) {
               Navigator.pushNamed(context, '/orders');
             } else if (index == 3) {
-              Navigator.pushNamed(context, '/inventory-manage'); // Nueva ruta
+              Navigator.pushNamed(context, '/product-manage');
+            } else if (index == 4) {
+              Navigator.pushNamed(context, '/shelf-manage');
             }
           },
           type: BottomNavigationBarType.fixed,
@@ -277,6 +279,10 @@ class _HomeViewState extends State<HomeView> {
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),
               label: 'Gestión',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.view_list),
+              label: 'Estantes',
             ),
           ],
         ),

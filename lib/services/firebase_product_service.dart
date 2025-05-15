@@ -1,4 +1,4 @@
-// lib/services/api_service.dart
+// lib/services/firebase_product_service.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/product_model.dart';
@@ -13,6 +13,18 @@ class FirebaseProductService {
         .map((doc) => ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
         .toList();
   }
+
+  Future<List<ProductModel>> getProductsByIds(List<String> ids) async {
+  if (ids.isEmpty) return [];
+
+  final snapshot = await FirebaseFirestore.instance
+      .collection('products')
+      .where(FieldPath.documentId, whereIn: ids)
+      .get();
+
+  return snapshot.docs.map((doc) => ProductModel.fromMap(doc.data(), doc.id)).toList();
+}
+
 
   Future<void> addProduct(ProductModel product) async {
     await productsCollection.add(product.toMap());

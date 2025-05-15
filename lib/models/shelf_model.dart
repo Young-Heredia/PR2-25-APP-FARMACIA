@@ -4,8 +4,8 @@ class ShelfModel {
   final String id;
   final String name;
   final String description;
-  final int productsCount;
-  final List<String> assignedProducts;
+  int productsCount;
+  List<String> assignedProducts;
 
   ShelfModel({
     required this.id,

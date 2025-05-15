@@ -31,6 +31,15 @@ class FirebaseShelfService {
       String shelfId, List<String> productIds) async {
     await shelvesCollection.doc(shelfId).update({
       'assignedProducts': productIds,
+      'productsCount': productIds.length,
     });
+  }
+
+  Future<ShelfModel?> getShelfById(String id) async {
+    final doc = await shelvesCollection.doc(id).get();
+    if (doc.exists) {
+      return ShelfModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+    }
+    return null;
   }
 }

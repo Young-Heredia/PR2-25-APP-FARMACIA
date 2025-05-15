@@ -22,10 +22,13 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
 
   List<ProductModel> _products = [];
   Set<String> _selectedProductIds = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchTerm = '';
 
   @override
   void initState() {
     super.initState();
+    _selectedProductIds = widget.shelf.assignedProducts.toSet();
     _loadProducts();
   }
 
@@ -36,6 +39,16 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
     });
   }
 
+  List<ProductModel> get _filteredProducts {
+    if (_searchTerm.isEmpty) return _products;
+    final lowerCaseSearch = _searchTerm.toLowerCase();
+    return _products.where((product) {
+      return product.name.toLowerCase().contains(lowerCaseSearch) ||
+          product.description.toLowerCase().contains(lowerCaseSearch) ||
+          product.supplier.toLowerCase().contains(lowerCaseSearch);
+    }).toList();
+  }
+
   Future<void> _assignProducts() async {
     if (_selectedProductIds.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -44,16 +57,10 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
       return;
     }
 
-    // 1. Obtener los productos ya asignados
-    final existingAssignedProducts = widget.shelf.assignedProducts;
-
-    // 2. Unir sin duplicados
-    final updatedAssignedProducts =
-        {...existingAssignedProducts, ..._selectedProductIds}.toList();
-
-    // 3. Actualizar en Firebase
     await shelfService.assignProductsToShelf(
-        widget.shelf.id, updatedAssignedProducts);
+      widget.shelf.id,
+      _selectedProductIds.toList(),
+    );
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -68,30 +75,63 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
       appBar: AppBar(title: Text('Asignar Productos a ${widget.shelf.name}')),
       body: _products.isEmpty
           ? const Center(child: CircularProgressIndicator())
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _products.length,
-              itemBuilder: (context, index) {
-                final product = _products[index];
-                return CheckboxListTile(
-                  value: _selectedProductIds.contains(product.id),
-                  onChanged: (bool? selected) {
-                    setState(() {
-                      if (selected == true) {
-                        _selectedProductIds.add(product.id);
-                      } else {
-                        _selectedProductIds.remove(product.id);
-                      }
-                    });
-                  },
-                  title: Text(product.name),
-                  subtitle: Text(
-                      'Cantidad: ${product.stock} | Bs ${product.price.toStringAsFixed(2)}'),
-                  secondary: CircleAvatar(
-                    backgroundImage: NetworkImage(product.imageUrl),
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar productos...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onChanged: (value) {
+                      setState(() {
+                        _searchTerm = value;
+                      });
+                    },
                   ),
-                );
-              },
+                ),
+                Expanded(
+                  child: _filteredProducts.isEmpty
+                      ? const Center(
+                          child: Text(
+                            '🔍 No se encontraron productos que coincidan con tu búsqueda.',
+                            style: TextStyle(fontSize: 16),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _filteredProducts.length,
+                          itemBuilder: (context, index) {
+                            final product = _filteredProducts[index];
+                            return CheckboxListTile(
+                              value: _selectedProductIds.contains(product.id),
+                              onChanged: (bool? selected) {
+                                setState(() {
+                                  if (selected == true) {
+                                    _selectedProductIds.add(product.id);
+                                  } else {
+                                    _selectedProductIds.remove(product.id);
+                                  }
+                                });
+                              },
+                              title: Text(product.name),
+                              subtitle: Text(
+                                'Cantidad: ${product.stock} | Bs ${product.price.toStringAsFixed(2)}\nProveedor: ${product.supplier}',
+                              ),
+                              secondary: CircleAvatar(
+                                backgroundImage: NetworkImage(product.imageUrl),
+                              ),
+                              isThreeLine: true,
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _assignProducts,

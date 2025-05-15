@@ -15,6 +15,13 @@ class ShelfManagementPage extends StatefulWidget {
 
 class _ShelfManagementPageState extends State<ShelfManagementPage> {
   final service = FirebaseShelfService();
+  late Future<List<ShelfModel>> _shelvesFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _shelvesFuture = service.getAllShelves();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +30,7 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
         title: const Text('Gestión de Estantes'),
       ),
       body: FutureBuilder<List<ShelfModel>>(
-        future: service.getAllShelves(),
+        future: _shelvesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -67,7 +74,9 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
                           ),
                         );
                         if (wasUpdated == true) {
-                          setState(() {});
+                          setState(() {
+                            _shelvesFuture = service.getAllShelves();
+                          });
                         }
                       },
                     ),
@@ -80,13 +89,18 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
                     ),
                   ],
                 ),
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  final wasUpdated = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (_) => ShelfDetailView(shelf: shelf),
                     ),
                   );
+                  if (wasUpdated == true) {
+                      setState(() {
+                        _shelvesFuture = service.getAllShelves(); // ✅
+                    }); // Refresca la lista al volver
+                  }
                 },
               );
             },
@@ -96,7 +110,11 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/add-shelf').then((wasAdded) {
-            if (wasAdded == true) setState(() {});
+            if (wasAdded == true) {
+              setState(() {
+                _shelvesFuture = service.getAllShelves(); // ✅
+              });
+            }
           });
         },
         tooltip: 'Agregar Estante',
@@ -128,7 +146,9 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
 
     if (confirmed == true) {
       await service.deleteShelf(shelfId);
-      setState(() {}); // Refrescar la lista
+      setState(() {
+        _shelvesFuture = service.getAllShelves();
+      }); // Refrescar la lista
     }
   }
 }

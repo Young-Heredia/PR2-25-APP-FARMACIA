@@ -1,11 +1,11 @@
 // lib/views/product/product_manage_view.dart
 
+import 'package:app_farmacia/views/product/detail_product_view.dart';
 import 'package:app_farmacia/views/product/edit_product_view.dart';
 import 'package:flutter/material.dart';
 import '../../models/product_model.dart';
 import '../../services/firebase_product_service.dart';
 import 'add_product_view.dart';
-import 'edit_product_view.dart';
 
 class ProductManageView extends StatefulWidget {
   const ProductManageView({super.key});
@@ -43,7 +43,8 @@ class _ProductManageViewState extends State<ProductManageView> {
                   backgroundImage: NetworkImage(p.imageUrl),
                 ),
                 title: Text(p.name),
-                subtitle: Text('Cantidad: ${p.stock}  |  Bs ${p.price.toStringAsFixed(2)}'),
+                subtitle: Text(
+                    'Cantidad: ${p.stock}  |  Bs ${p.price.toStringAsFixed(2)}'),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -54,9 +55,11 @@ class _ProductManageViewState extends State<ProductManageView> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => EditProductView(product: p), // ✅ PASA EL PRODUCTO
+                            builder: (_) => EditProductView(
+                                product: p), // ✅ PASA EL PRODUCTO
                           ),
-                        ).then((_) => setState(() {})); // Refresca la lista al volver
+                        ).then((_) =>
+                            setState(() {})); // Refresca la lista al volver
                       },
                     ),
                     IconButton(
@@ -69,11 +72,23 @@ class _ProductManageViewState extends State<ProductManageView> {
                     ),
                   ],
                 ),
-                onTap: () {
+                onTap: () async {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Cargando detalle...'),
+                      duration: Duration(milliseconds: 800),
+                      backgroundColor: Colors.teal,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.all(16),
+                    ),
+                  );
+                  await Future.delayed(const Duration(milliseconds: 800));
+                  if (!context.mounted) return;
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => DetailProductView(product: p))
-                  
+                    MaterialPageRoute(
+                        builder: (_) => DetailProductView(product: p)),
+                  );
                 },
               );
             },

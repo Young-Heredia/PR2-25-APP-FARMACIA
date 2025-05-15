@@ -252,7 +252,7 @@ class _HomeViewState extends State<HomeView> {
             } else if (index == 2) {
               Navigator.pushNamed(context, '/orders');
             } else if (index == 3) {
-              Navigator.pushNamed(context, '/inventory-manage');
+              Navigator.pushNamed(context, '/product-manage');
             } else if (index == 4) {
               Navigator.pushNamed(context, '/shelf-manage');
             }

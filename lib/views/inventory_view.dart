@@ -1,10 +1,10 @@
 // lib/views/inventory_view.dart
 
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import '../services/firebase_product_service.dart';
 import '../models/product_model.dart';
 import '../widgets/product_card.dart';
-import 'add_product_view.dart';
+import 'product/add_product_view.dart';
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});

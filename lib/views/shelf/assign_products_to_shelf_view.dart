@@ -57,10 +57,23 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
       return;
     }
 
+// Paso 1: Actualizar colección 'shelves'
     await shelfService.assignProductsToShelf(
       widget.shelf.id,
       _selectedProductIds.toList(),
     );
+
+    // Paso 2: Actualizar campo shelfId en cada producto
+    for (final product in _products) {
+      final wasAssigned = _selectedProductIds.contains(product.id);
+      final isCurrentlyAssigned = product.shelfId == widget.shelf.id;
+
+      if (wasAssigned && !isCurrentlyAssigned) {
+        await productService.updateProductShelf(product.id, widget.shelf.id);
+      } else if (!wasAssigned && isCurrentlyAssigned) {
+        await productService.updateProductShelf(product.id, null);
+      }
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

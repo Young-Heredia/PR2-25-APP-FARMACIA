@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/product_model.dart';
 import '../../services/firebase_product_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;
@@ -24,6 +28,37 @@ class _AddProductViewState extends State<AddProductView> {
   final _supplierController = TextEditingController();
   final _imageUrlController = TextEditingController();
   DateTime? _selectedDate;
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: source, imageQuality: 75);
+    if (picked == null) return;
+
+    final file = File(picked.path);
+    final fileName = path.basename(picked.path);
+
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('products')
+          .child('img_$fileName');
+
+      await ref.putFile(file);
+      final url = await ref.getDownloadURL();
+
+      setState(() {
+        _imageUrlController.text = url;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagen subida con éxito')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al subir imagen: $e')),
+      );
+    }
+  }
 
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
@@ -89,7 +124,28 @@ class _AddProductViewState extends State<AddProductView> {
               _textField(_stockController, 'Stock',
                   inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
-              _textField(_imageUrlController, 'URL Imagen'),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.photo_camera),
+                      label: const Text('Tomar foto'),
+                      onPressed: () => _pickImage(ImageSource.camera),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.image),
+                      label: const Text('Galería'),
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_imageUrlController.text.isNotEmpty)
+                Image.network(_imageUrlController.text, height: 120),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: _pickDate,

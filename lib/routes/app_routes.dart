@@ -8,6 +8,7 @@ import '../views/product/add_product_view.dart';
 import '../views/product/product_manage_view.dart';
 import '../views/shelf/shelf_manage_view.dart';
 import '../views/shelf/add_shelf_view.dart';
+import '../views/notification/notification_view.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   '/': (context) => const HomeView(),
@@ -17,4 +18,5 @@ final Map<String, WidgetBuilder> appRoutes = {
   '/add-product': (context) => const AddProductView(),
   '/shelf-manage': (context) => const ShelfManagementPage(),
   '/add-shelf': (context) => const AddShelfView(),
+  '/notifications': (context) => NotificationView(),
 };

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/product_model.dart';
 import '../../services/firebase_product_service.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:path/path.dart' as path;
 
 class EditProductView extends StatefulWidget {
   final ProductModel product;
@@ -17,6 +21,7 @@ class EditProductView extends StatefulWidget {
 class _EditProductViewState extends State<EditProductView> {
   final _formKey = GlobalKey<FormState>();
   final _service = FirebaseProductService();
+  bool get _isExpired => _selectedDate.isBefore(DateTime.now());
 
   late TextEditingController _nameController;
   late TextEditingController _descController;
@@ -25,6 +30,7 @@ class _EditProductViewState extends State<EditProductView> {
   late TextEditingController _supplierController;
   late TextEditingController _imageUrlController;
   late DateTime _selectedDate;
+  late String? _shelfId;
 
   @override
   void initState() {
@@ -37,6 +43,22 @@ class _EditProductViewState extends State<EditProductView> {
     _supplierController = TextEditingController(text: p.supplier);
     _imageUrlController = TextEditingController(text: p.imageUrl);
     _selectedDate = p.expirationDate;
+    _shelfId = p.shelfId;
+
+    // 🔥 Mostrar advertencia si ya está vencido
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_selectedDate.isBefore(DateTime.now())) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('⚠️ Este producto ya está vencido.'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+    });
   }
 
   void _submitForm() async {
@@ -50,6 +72,7 @@ class _EditProductViewState extends State<EditProductView> {
         imageUrl: _imageUrlController.text.trim(),
         expirationDate: _selectedDate,
         supplier: _supplierController.text.trim(),
+        shelfId: _shelfId,
       );
 
       await _service.updateProduct(updated);
@@ -82,12 +105,60 @@ class _EditProductViewState extends State<EditProductView> {
           key: _formKey,
           child: ListView(
             children: [
+              if (_isExpired)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.shade300),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.warning_amber_rounded, color: Colors.red),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Este producto está vencido.',
+                          style: TextStyle(
+                            color: Colors.red,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _textField(_nameController, 'Nombre'),
               _textField(_descController, 'Descripción'),
-              _textField(_priceController, 'Precio', inputType: TextInputType.number),
-              _textField(_stockController, 'Stock', inputType: TextInputType.number),
+              _textField(_priceController, 'Precio',
+                  inputType: TextInputType.number),
+              _textField(_stockController, 'Stock',
+                  inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
-              _textField(_imageUrlController, 'URL Imagen'),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.photo_camera),
+                      label: const Text('Tomar foto'),
+                      onPressed: () => _pickImage(ImageSource.camera),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.image),
+                      label: const Text('Galería'),
+                      onPressed: () => _pickImage(ImageSource.gallery),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_imageUrlController.text.isNotEmpty)
+                Image.network(_imageUrlController.text, height: 120),
               const SizedBox(height: 12),
               ElevatedButton.icon(
                 onPressed: _pickDate,

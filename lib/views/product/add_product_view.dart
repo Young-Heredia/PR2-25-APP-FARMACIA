@@ -6,8 +6,7 @@ import '../../models/product_model.dart';
 import '../../services/firebase_product_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path/path.dart' as path;
+import 'package:app_farmacia/services/cloudinary_service.dart';
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;
@@ -20,6 +19,10 @@ class AddProductView extends StatefulWidget {
 class _AddProductViewState extends State<AddProductView> {
   final _formKey = GlobalKey<FormState>();
   final _service = FirebaseProductService();
+  final CloudinaryService cloudinary = CloudinaryService(
+    cloudName: 'duiiqydcv',
+    uploadPreset: 'pr2_25_app_farmacia',
+  );
 
   final _nameController = TextEditingController();
   final _descController = TextEditingController();
@@ -27,35 +30,24 @@ class _AddProductViewState extends State<AddProductView> {
   final _stockController = TextEditingController();
   final _supplierController = TextEditingController();
   final _imageUrlController = TextEditingController();
+
+  File? _selectedImageFile;
   DateTime? _selectedDate;
+  String _imageInputMode = 'URL'; // o 'Archivo'
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: source, imageQuality: 75);
-    if (picked == null) return;
 
-    final file = File(picked.path);
-    final fileName = path.basename(picked.path);
-
-    try {
-      final ref = FirebaseStorage.instance
-          .ref()
-          .child('products')
-          .child('img_$fileName');
-
-      await ref.putFile(file);
-      final url = await ref.getDownloadURL();
-
+    if (picked != null) {
       setState(() {
-        _imageUrlController.text = url;
+        _selectedImageFile = File(picked.path);
+        _imageUrlController.clear();
       });
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imagen subida con éxito')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al subir imagen: $e')),
+        const SnackBar(content: Text('Imagen seleccionada')),
       );
     }
   }
@@ -63,13 +55,29 @@ class _AddProductViewState extends State<AddProductView> {
   void _submitForm() async {
     if (_formKey.currentState!.validate() && _selectedDate != null) {
       try {
+        String imageUrl = _imageUrlController.text.trim();
+
+        // Subir a Cloudinary si aún no se subió
+        if (_selectedImageFile != null && imageUrl.isEmpty) {
+          final uploadedUrl = await cloudinary.uploadImage(_selectedImageFile!);
+          if (uploadedUrl != null) {
+            imageUrl = uploadedUrl;
+          } else {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error al subir la imagen')),
+            );
+            return;
+          }
+        }
+
         final product = ProductModel(
-          id: widget.product?.id ?? '', // Firestore asignará el ID
+          id: widget.product?.id ?? '', // Firestore asigna el ID
           name: _nameController.text.trim(),
           description: _descController.text.trim(),
           price: double.parse(_priceController.text),
           stock: int.parse(_stockController.text),
-          imageUrl: _imageUrlController.text.trim(),
+          imageUrl: imageUrl,
           expirationDate: _selectedDate!,
           supplier: _supplierController.text.trim(),
         );
@@ -81,14 +89,12 @@ class _AddProductViewState extends State<AddProductView> {
         }
 
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Producto guardado con éxito')),
         );
         Navigator.pop(context, true);
       } catch (e) {
         if (!mounted) return;
-
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar: $e')),
         );
@@ -124,27 +130,54 @@ class _AddProductViewState extends State<AddProductView> {
               _textField(_stockController, 'Stock',
                   inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.photo_camera),
-                      label: const Text('Tomar foto'),
-                      onPressed: () => _pickImage(ImageSource.camera),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.image),
-                      label: const Text('Galería'),
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                    ),
-                  ),
+              DropdownButtonFormField<String>(
+                value: _imageInputMode,
+                decoration: const InputDecoration(
+                  labelText: 'Seleccionar método de imagen',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                      value: 'URL', child: Text('Ingresar URL manual')),
+                  DropdownMenuItem(
+                      value: 'Archivo', child: Text('Tomar foto o galería')),
                 ],
+                onChanged: (value) {
+                  setState(() {
+                    _imageInputMode = value!;
+                    _selectedImageFile = null;
+                    _imageUrlController.clear();
+                  });
+                },
               ),
+              const SizedBox(height: 16),
+              if (_imageInputMode == 'Archivo') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Tomar foto'),
+                        onPressed: () => _pickImage(ImageSource.camera),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.image),
+                        label: const Text('Galería'),
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                _textField(_imageUrlController, 'URL Imagen'),
+              ],
               const SizedBox(height: 12),
-              if (_imageUrlController.text.isNotEmpty)
+              if (_selectedImageFile != null)
+                Image.file(_selectedImageFile!, height: 120)
+              else if (_imageUrlController.text.isNotEmpty)
                 Image.network(_imageUrlController.text, height: 120),
               const SizedBox(height: 12),
               ElevatedButton.icon(

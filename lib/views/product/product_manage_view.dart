@@ -1,6 +1,5 @@
 // lib/views/product/product_manage_view.dart
 
-import 'package:app_farmacia/prueba.dart';
 import 'package:app_farmacia/views/product/detail_product_view.dart';
 import 'package:app_farmacia/views/product/edit_product_view.dart';
 import 'package:flutter/material.dart';

@@ -5,8 +5,8 @@ import 'package:app_farmacia/services/firebase_product_service.dart';
 import 'package:app_farmacia/services/firebase_shelf_service.dart';
 import 'package:app_farmacia/models/product_model.dart';
 import 'package:app_farmacia/models/shelf_model.dart';
-import 'package:app_farmacia/views/notification/expiring_product_detail_view.dart';
-import 'package:app_farmacia/views/notification/shelf_notification_card.dart';
+import 'package:app_farmacia/views/notification/expiring_product_by_shelf_view.dart';
+//import 'package:app_farmacia/views/notification/shelf_notification_card.dart';
 
 class NotificationView extends StatefulWidget {
   NotificationView({super.key});
@@ -99,96 +99,103 @@ class _NotificationViewState extends State<NotificationView> {
     final info = _getCardStyle(category);
 
     // Estantes únicos
-    final shelfSet = products.map((p) => p.shelfId ?? 'no_shelf').toSet();
+    //final shelfSet = products.map((p) => p.shelfId ?? 'no_shelf').toSet();
 
     // Conteo de productos por estante
-    final Map<String, int> productCountMap = {};
+    //final Map<String, int> productCountMap = {};
 
-  for (var product in products) {
-    final shelfName = product.shelfId != null
-        ? shelfMap[product.shelfId] ?? product.shelfId!
-        : 'No asignado';
-    productCountMap[shelfName] = (productCountMap[shelfName] ?? 0) + 1;
-  }
+    // Agrupar productos por shelfId
+    final Map<String, List<ProductModel>> groupedByShelf = {};
+    for (var product in products) {
+      final shelfId = product.shelfId ?? 'no_shelf';
+      groupedByShelf[shelfId] = [...groupedByShelf[shelfId] ?? [], product];
+    }
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ExpiringProductDetailView(
-              category: category,
-              products: products,
-              shelfMap: shelfMap,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        color: info['background'],
+      ),
+      child: Column(
+        children: [
+          // 🔹 Header del Card
+          Container(
+            decoration: BoxDecoration(
+              color: info['color'],
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            //margin: const EdgeInsets.only(bottom: 0),
+            child: Row(
+              children: [
+                Icon(info['icon'], color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    info['title'],
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                CircleAvatar(
+                  radius: 12,
+                  backgroundColor: Colors.white,
+                  child: Text(
+                    groupedByShelf.length.toString(), // Número de estantes
+                    style: TextStyle(
+                      color: info['color'],
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: info['background'],
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            // 🔹 Header del Card
-            Container(
-              decoration: BoxDecoration(
-                color: info['color'],
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  Icon(info['icon'], color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      info['title'],
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  CircleAvatar(
-                    radius: 12,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      shelfSet.length.toString(),
-                      style: TextStyle(
-                        color: info['color'],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // 🔸 Contenido del Card
-            Container(
-              padding: const EdgeInsets.all(12),
-              width: double.infinity,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: productCountMap.entries.map((entry) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Cantidad: ${entry.value}"),
-                          Text("Estante: ${entry.key}"),
-                        ],
+
+          // 🔸 Contenido del Card (lista de estantes)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: groupedByShelf.entries.map((entry) {
+                final shelfId = entry.key;
+                final shelfProducts = entry.value;
+                final shelfName = shelfMap[shelfId] ?? 'Sin estante asignado';
+
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ExpiringProductByShelfView(
+                          category: category,
+                          shelfName: shelfName,
+                          products: shelfProducts,
+                        ),
                       ),
                     );
-                  }).toList(),
-              ),
+                  },
+                  child: Container(
+                    alignment: Alignment.centerLeft,
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Cantidad: ${shelfProducts.length}'),
+                        Text('Estante: $shelfName'),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

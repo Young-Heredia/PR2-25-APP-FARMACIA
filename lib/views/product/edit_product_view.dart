@@ -6,8 +6,7 @@ import '../../models/product_model.dart';
 import '../../services/firebase_product_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:path/path.dart' as path;
+import 'package:app_farmacia/services/cloudinary_service.dart';
 
 class EditProductView extends StatefulWidget {
   final ProductModel product;
@@ -21,7 +20,13 @@ class EditProductView extends StatefulWidget {
 class _EditProductViewState extends State<EditProductView> {
   final _formKey = GlobalKey<FormState>();
   final _service = FirebaseProductService();
-  bool get _isExpired => _selectedDate.isBefore(DateTime.now());
+  final CloudinaryService cloudinary = CloudinaryService(
+    cloudName: 'duiiqydcv',
+    uploadPreset: 'pr2_25_app_farmacia',
+  );
+
+  File? _selectedImageFile;
+  String _imageInputMode = 'URL'; // 'URL' o 'Archivo'
 
   late TextEditingController _nameController;
   late TextEditingController _descController;
@@ -32,9 +37,14 @@ class _EditProductViewState extends State<EditProductView> {
   late DateTime _selectedDate;
   late String? _shelfId;
 
+  late String _alertMessage;
+  late Color _alertColor;
+  late IconData _alertIcon;
+
   @override
   void initState() {
     super.initState();
+
     final p = widget.product;
     _nameController = TextEditingController(text: p.name);
     _descController = TextEditingController(text: p.description);
@@ -45,31 +55,90 @@ class _EditProductViewState extends State<EditProductView> {
     _selectedDate = p.expirationDate;
     _shelfId = p.shelfId;
 
-    // 🔥 Mostrar advertencia si ya está vencido
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_selectedDate.isBefore(DateTime.now())) {
+    final now = DateTime.now();
+    final diff = _selectedDate.difference(now).inDays;
+
+    if (diff < 0) {
+      _alertMessage = 'Este producto ya está vencido.';
+      _alertColor = Colors.red.shade300;
+      _alertIcon = Icons.warning_amber_rounded;
+    } else if (diff == 0) {
+      _alertMessage = 'Este producto vence hoy.';
+      _alertColor = Colors.deepOrange;
+      _alertIcon = Icons.error;
+    } else if (diff <= 30) {
+      _alertMessage = 'Este producto vence en $diff días.';
+      _alertColor = Colors.orange.shade300;
+      _alertIcon = Icons.calendar_today;
+    } else if (diff <= 60) {
+      _alertMessage = 'Este producto vence en $diff días.';
+      _alertColor = Colors.blue.shade300;
+      _alertIcon = Icons.event_note;
+    } else if (diff <= 90) {
+      _alertMessage = 'Este producto vence en $diff días.';
+      _alertColor = Colors.green.shade300;
+      _alertIcon = Icons.check_circle;
+    } else {
+      _alertMessage = '';
+    }
+
+    if (_alertMessage.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('⚠️ Este producto ya está vencido.'),
-            backgroundColor: Colors.redAccent,
+            content: Text(_alertMessage),
+            backgroundColor: _alertColor,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
             margin: const EdgeInsets.all(16),
           ),
         );
-      }
-    });
+      });
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: source, imageQuality: 75);
+
+    if (picked != null) {
+      setState(() {
+        _selectedImageFile = File(picked.path);
+        _imageUrlController.clear();
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagen seleccionada')),
+      );
+    }
   }
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      String imageUrl = _imageUrlController.text.trim();
+
+      if (_selectedImageFile != null && imageUrl.isEmpty) {
+        final uploadedUrl = await cloudinary.uploadImage(_selectedImageFile!);
+        if (uploadedUrl != null) {
+          imageUrl = uploadedUrl;
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error al subir la imagen')),
+          );
+          return;
+        }
+      }
+
       final updated = ProductModel(
         id: widget.product.id,
         name: _nameController.text.trim(),
         description: _descController.text.trim(),
         price: double.tryParse(_priceController.text) ?? 0.0,
         stock: int.tryParse(_stockController.text) ?? 0,
-        imageUrl: _imageUrlController.text.trim(),
+        imageUrl: imageUrl,
         expirationDate: _selectedDate,
         supplier: _supplierController.text.trim(),
         shelfId: _shelfId,
@@ -105,24 +174,24 @@ class _EditProductViewState extends State<EditProductView> {
           key: _formKey,
           child: ListView(
             children: [
-              if (_isExpired)
+              if (_alertMessage.isNotEmpty)
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.red.shade100,
+                    color: _alertColor.withOpacity(0.2),
+                    border: Border.all(color: _alertColor),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red.shade300),
                   ),
                   child: Row(
-                    children: const [
-                      Icon(Icons.warning_amber_rounded, color: Colors.red),
-                      SizedBox(width: 12),
+                    children: [
+                      Icon(_alertIcon, color: _alertColor),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Este producto está vencido.',
+                          _alertMessage,
                           style: TextStyle(
-                            color: Colors.red,
+                            color: _alertColor,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -137,27 +206,54 @@ class _EditProductViewState extends State<EditProductView> {
               _textField(_stockController, 'Stock',
                   inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.photo_camera),
-                      label: const Text('Tomar foto'),
-                      onPressed: () => _pickImage(ImageSource.camera),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.image),
-                      label: const Text('Galería'),
-                      onPressed: () => _pickImage(ImageSource.gallery),
-                    ),
-                  ),
+              DropdownButtonFormField<String>(
+                value: _imageInputMode,
+                decoration: const InputDecoration(
+                  labelText: 'Método de Imagen',
+                  border: OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(
+                      value: 'URL', child: Text('Ingresar URL manual')),
+                  DropdownMenuItem(
+                      value: 'Archivo', child: Text('Tomar foto o galería')),
                 ],
+                onChanged: (value) {
+                  setState(() {
+                    _imageInputMode = value!;
+                    _selectedImageFile = null;
+                    _imageUrlController.clear();
+                  });
+                },
               ),
               const SizedBox(height: 12),
-              if (_imageUrlController.text.isNotEmpty)
+              if (_imageInputMode == 'Archivo') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.photo_camera),
+                        label: const Text('Tomar foto'),
+                        onPressed: () => _pickImage(ImageSource.camera),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.image),
+                        label: const Text('Galería'),
+                        onPressed: () => _pickImage(ImageSource.gallery),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                _textField(_imageUrlController, 'URL Imagen'),
+              ],
+              const SizedBox(height: 12),
+              if (_selectedImageFile != null)
+                Image.file(_selectedImageFile!, height: 120)
+              else if (_imageUrlController.text.isNotEmpty)
                 Image.network(_imageUrlController.text, height: 120),
               const SizedBox(height: 12),
               ElevatedButton.icon(
@@ -169,7 +265,7 @@ class _EditProductViewState extends State<EditProductView> {
               ElevatedButton(
                 onPressed: _submitForm,
                 child: const Text('Guardar Cambios'),
-              )
+              ),
             ],
           ),
         ),

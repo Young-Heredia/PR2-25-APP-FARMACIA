@@ -25,6 +25,8 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchTerm = '';
 
+  Map<String, String> _shelfMap = {}; // Mapea shelfId -> shelfName
+
   @override
   void initState() {
     super.initState();
@@ -34,8 +36,10 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
 
   Future<void> _loadProducts() async {
     final products = await productService.getAllProducts();
+    final shelves = await shelfService.getAllShelves();
     setState(() {
       _products = products;
+      _shelfMap = {for (var s in shelves) s.id: s.name};
     });
   }
 
@@ -57,10 +61,23 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
       return;
     }
 
+// Paso 1: Actualizar colección 'shelves'
     await shelfService.assignProductsToShelf(
       widget.shelf.id,
       _selectedProductIds.toList(),
     );
+
+    // Paso 2: Actualizar campo shelfId en cada producto
+    for (final product in _products) {
+      final wasAssigned = _selectedProductIds.contains(product.id);
+      final isCurrentlyAssigned = product.shelfId == widget.shelf.id;
+
+      if (wasAssigned && !isCurrentlyAssigned) {
+        await productService.updateProductShelf(product.id, widget.shelf.id);
+      } else if (!wasAssigned && isCurrentlyAssigned) {
+        await productService.updateProductShelf(product.id, null);
+      }
+    }
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -108,18 +125,48 @@ class _AssignProductsToShelfPageState extends State<AssignProductsToShelfPage> {
                           itemCount: _filteredProducts.length,
                           itemBuilder: (context, index) {
                             final product = _filteredProducts[index];
+                            final isAssignedToOtherShelf =
+                                product.shelfId != null && product.shelfId != widget.shelf.id;
+
+                            final assignedShelfName = product.shelfId != null
+                                ? _shelfMap[product.shelfId] ?? '⚠️ Estante eliminado'
+                                : null;
+
                             return CheckboxListTile(
                               value: _selectedProductIds.contains(product.id),
-                              onChanged: (bool? selected) {
-                                setState(() {
-                                  if (selected == true) {
-                                    _selectedProductIds.add(product.id);
-                                  } else {
-                                    _selectedProductIds.remove(product.id);
-                                  }
-                                });
-                              },
-                              title: Text(product.name),
+                              onChanged: isAssignedToOtherShelf
+                                  ? null
+                                  : (bool? selected) {
+                                      setState(() {
+                                        if (selected == true) {
+                                          _selectedProductIds.add(product.id);
+                                        } else {
+                                          _selectedProductIds
+                                              .remove(product.id);
+                                        }
+                                      });
+                                    },
+                              title: Row(
+                                children: [
+                                  Expanded(child: Text(product.name)),
+                                  if (isAssignedToOtherShelf)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red.shade100,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '$assignedShelfName',
+                                        style: const TextStyle(
+                                          color: Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
                               subtitle: Text(
                                 'Cantidad: ${product.stock} | Bs ${product.price.toStringAsFixed(2)}\nProveedor: ${product.supplier}',
                               ),

@@ -3,6 +3,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:app_farmacia/services/firebase_product_service.dart';
+import 'package:app_farmacia/models/product_model.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -13,8 +15,11 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   final PageController _pageController = PageController();
+  final FirebaseProductService _productService = FirebaseProductService();
+
   int _currentPage = 0;
   int _selectedIndex = 0;
+  Timer? _carouselTimer;
 
   final List<Map<String, dynamic>> featuredProducts = [
     {
@@ -36,8 +41,6 @@ class _HomeViewState extends State<HomeView> {
       'rxRequired': true
     },
   ];
-
-  Timer? _carouselTimer;
 
   @override
   void initState() {
@@ -70,38 +73,26 @@ class _HomeViewState extends State<HomeView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE9EDF5),
-      /*body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 12),
-            _buildCarousel(context),
-            const SizedBox(height: 24),
-            _buildNavigationButtons(context),
-          ],
-        ),
-      ),*/
-      body: Column(
-        children: [
-          _buildCarousel(context),
-          const Spacer(),
+      appBar: AppBar(
+        title: const Text('Inicio'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              Navigator.pushNamed(context, '/notifications');
+            },
+          ),
         ],
       ),
-      /*body: Stack(
-        children: [
-          Column(
-            children: [
-              _buildCarousel(context),
-              const Spacer(),
-            ],
-          ),
-          Positioned(
-            bottom: 32,
-            left: 0,
-            right: 0,
-            child: _buildNavigationButtons(context),
-          ),
-        ],
-      ),*/
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            _buildCarousel(context),
+            const SizedBox(height: 24),
+            _buildExpiringProductsCard(),
+          ],
+        ),
+      ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
@@ -214,30 +205,6 @@ class _HomeViewState extends State<HomeView> {
           ),
         ],
       ),
-      /*child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Botones de Inventario y Órdenes
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            child: Column(
-              children: [
-                _customNavButton(
-                  icon: Icons.inventory_2_rounded,
-                  text: 'Gestión de Inventario',
-                  onPressed: () => Navigator.pushNamed(context, '/inventory'),
-                ),
-                const SizedBox(height: 10),
-                _customNavButton(
-                  icon: Icons.receipt_long,
-                  text: 'Órdenes de Venta',
-                  onPressed: () => Navigator.pushNamed(context, '/orders'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),*/
-      // Barra inferior con íconos
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(0),
@@ -290,24 +257,101 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _customNavButton(
-      {required IconData icon,
-      required String text,
-      required VoidCallback onPressed}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: ElevatedButton.icon(
-        icon: Icon(icon, color: Colors.teal.shade900),
-        label: Text(text, style: TextStyle(color: Colors.teal.shade900)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFFE6F3FB),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          elevation: 2,
-        ),
-        onPressed: onPressed,
-      ),
+  Widget _buildExpiringProductsCard() {
+    return FutureBuilder<List<ProductModel>>(
+      future: _productService.getExpiringProducts(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Card(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(
+                    child: Text('No hay productos próximos a vencer. 🎉')),
+              ),
+            ),
+          );
+        }
+
+        final products = snapshot.data!;
+        products.sort((a, b) => a.expirationDate.compareTo(b.expirationDate));
+        final top3Products = products.take(3).toList();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Card(
+            elevation: 4,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Productos Próximos a Vencer',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 16),
+                  ...top3Products.map((product) {
+                    final daysRemaining = product.expirationDate
+                        .difference(DateTime.now())
+                        .inDays;
+                    final statusInfo = _getStatusInfo(daysRemaining);
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading:
+                          Icon(statusInfo['icon'], color: statusInfo['color']),
+                      title: Text(product.name),
+                      subtitle: Text(statusInfo['message']),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  Map<String, dynamic> _getStatusInfo(int daysRemaining) {
+    if (daysRemaining < 0) {
+      return {
+        'color': Colors.red,
+        'message': '❌ Vencido hace ${-daysRemaining} días',
+        'icon': Icons.error,
+      };
+    } else if (daysRemaining == 0) {
+      return {
+        'color': Colors.redAccent,
+        'message': '⚠️ Vence hoy',
+        'icon': Icons.warning,
+      };
+    } else if (daysRemaining <= 30) {
+      return {
+        'color': Colors.orange,
+        'message': '⏳ Vence en $daysRemaining días',
+        'icon': Icons.hourglass_top,
+      };
+    } else if (daysRemaining <= 90) {
+      return {
+        'color': Colors.amber,
+        'message': '🕒 Vence en $daysRemaining días',
+        'icon': Icons.access_time,
+      };
+    } else {
+      return {
+        'color': Colors.green,
+        'message': '✅ Seguro',
+        'icon': Icons.check_circle,
+      };
+    }
   }
 }

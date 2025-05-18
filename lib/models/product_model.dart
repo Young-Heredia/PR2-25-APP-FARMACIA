@@ -9,6 +9,7 @@ class ProductModel {
   final String imageUrl;
   final DateTime expirationDate;
   final String supplier;
+  final String? shelfId;
 
   ProductModel({
     required this.id,
@@ -19,6 +20,7 @@ class ProductModel {
     required this.imageUrl,
     required this.expirationDate,
     required this.supplier,
+    this.shelfId,
   });
 
   factory ProductModel.fromMap(Map<String, dynamic> map, String id) {
@@ -31,6 +33,7 @@ class ProductModel {
       imageUrl: map['imageUrl'],
       expirationDate: DateTime.parse(map['expirationDate']),
       supplier: map['supplier'],
+      shelfId: map['shelfId'],
     );
   }
 
@@ -43,6 +46,7 @@ class ProductModel {
       'imageUrl': imageUrl,
       'expirationDate': expirationDate.toIso8601String(),
       'supplier': supplier,
+      'shelfId': shelfId,
     };
   }
 }

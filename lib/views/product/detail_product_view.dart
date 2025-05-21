@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/product_model.dart';
+import '../../services/firebase_shelf_service.dart';
 
 class DetailProductView extends StatefulWidget {
   final ProductModel product;
@@ -17,10 +18,14 @@ class _DetailProductViewState extends State<DetailProductView> {
   late String _alertMessage;
   late Color _alertColor;
   late IconData _alertIcon;
+  String? _shelfName;
+  final _shelfService = FirebaseShelfService();
 
   @override
   void initState() {
     super.initState();
+
+    _loadShelfName();
 
     final now = DateTime.now();
     final diff = widget.product.expirationDate.difference(now).inDays;
@@ -60,6 +65,15 @@ class _DetailProductViewState extends State<DetailProductView> {
             duration: const Duration(seconds: 4),
           ),
         );
+      });
+    }
+  }
+
+  void _loadShelfName() async {
+    if (widget.product.shelfId != null) {
+      final shelf = await _shelfService.getShelfById(widget.product.shelfId!);
+      setState(() {
+        _shelfName = shelf?.name ?? 'Estante eliminado';
       });
     }
   }
@@ -131,6 +145,12 @@ class _DetailProductViewState extends State<DetailProductView> {
             title: 'Proveedor',
             value: p.supplier,
           ),
+          if (_shelfName != null)
+            _infoCard(
+              icon: Icons.store,
+              title: 'Estante Asignado',
+              value: _shelfName!,
+            ),
           _infoCard(
             icon: Icons.calendar_today,
             title: 'Fecha de Vencimiento',

@@ -214,14 +214,19 @@ class _HomeViewState extends State<HomeView> {
           currentIndex: _selectedIndex,
           onTap: (index) {
             setState(() => _selectedIndex = index);
-            if (index == 1) {
+            switch (index) {
+              case 1:
               Navigator.pushNamed(context, '/inventory');
-            } else if (index == 2) {
+            break;
+            case 2:
               Navigator.pushNamed(context, '/orders');
-            } else if (index == 3) {
+            break;
+            case 3:
               Navigator.pushNamed(context, '/product-manage');
-            } else if (index == 4) {
+            break;
+            case 4:
               Navigator.pushNamed(context, '/shelf-manage');
+              break;
             }
           },
           type: BottomNavigationBarType.fixed,
@@ -244,11 +249,11 @@ class _HomeViewState extends State<HomeView> {
               label: 'Órdenes',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
+              icon: Icon(Icons.medical_services_outlined),
               label: 'Gestión',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.view_list),
+              icon: Icon(Icons.storage_rounded),
               label: 'Estantes',
             ),
           ],

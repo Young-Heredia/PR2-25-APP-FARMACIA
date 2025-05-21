@@ -7,7 +7,9 @@ class ProductCard extends StatelessWidget {
   final String name;
   final String description;
   final double price;
-  final VoidCallback? onTap;
+  final int quantity;
+  final VoidCallback? onAdd;
+  final VoidCallback? onRemove;
 
   const ProductCard({
     super.key,
@@ -15,95 +17,85 @@ class ProductCard extends StatelessWidget {
     required this.name,
     required this.description,
     required this.price,
-    this.onTap,
+    required this.quantity,
+    this.onAdd,
+    this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Imagen
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              image,
+              width: 64,
+              height: 64,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.broken_image, size: 64),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Imagen
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(
-                image,
-                width: 64,
-                height: 64,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.broken_image, size: 64),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Información
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
+          ),
+          const SizedBox(width: 12),
+          // Información
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                        fontWeight: FontWeight.w600, fontSize: 16)),
+                const SizedBox(height: 4),
+                Text(description,
+                    style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: onRemove, // disminuir cantidad
+                      icon: const Icon(Icons.remove_circle_outline,
+                          size: 20, color: Colors.grey),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey,
+                    Text(
+                      '$quantity',
+                      style: const TextStyle(fontSize: 14),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {}, // disminuir cantidad
-                        icon: const Icon(Icons.remove_circle_outline,
-                            size: 20, color: Colors.grey),
-                      ),
-                      const Text(
-                        '1',
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      IconButton(
-                        onPressed: () {}, // aumentar cantidad
-                        icon: const Icon(Icons.add_circle_outline,
-                            size: 20, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                    IconButton(
+                      onPressed: onAdd, // aumentar cantidad
+                      icon: const Icon(Icons.add_circle_outline,
+                          size: 20, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            // Precio
-            Text(
-              '\$${price.toStringAsFixed(2)}',
-              style: const TextStyle(
-                color: Colors.teal,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+          ),
+          // Precio
+          Text(
+            'Bs ${price.toStringAsFixed(2)}',
+            style: const TextStyle(
+              color: Colors.teal,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

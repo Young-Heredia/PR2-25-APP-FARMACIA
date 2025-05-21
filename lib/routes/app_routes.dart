@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../views/home_view.dart';
-import '../views/inventory_view.dart';
-import '../views/order_view.dart';
+import '../views/order/inventory_view.dart';
+import '../views/order/order_view.dart';
 import '../views/product/add_product_view.dart';
 import '../views/product/product_manage_view.dart';
 import '../views/shelf/shelf_manage_view.dart';

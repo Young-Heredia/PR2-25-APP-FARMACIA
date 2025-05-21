@@ -2,8 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/product_model.dart';
-import '../../services/firebase_product_service.dart';
+import 'package:app_farmacia/models/product_model.dart';
+import 'package:app_farmacia/services/firebase_product_service.dart';
+import 'package:app_farmacia/services/firebase_shelf_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_farmacia/services/cloudinary_service.dart';
@@ -41,6 +42,9 @@ class _EditProductViewState extends State<EditProductView> {
   late Color _alertColor;
   late IconData _alertIcon;
 
+  String? _shelfName;
+  final _shelfService = FirebaseShelfService();
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +58,8 @@ class _EditProductViewState extends State<EditProductView> {
     _imageUrlController = TextEditingController(text: p.imageUrl);
     _selectedDate = p.expirationDate;
     _shelfId = p.shelfId;
+
+    _loadShelfName();
 
     final now = DateTime.now();
     final diff = _selectedDate.difference(now).inDays;
@@ -95,6 +101,17 @@ class _EditProductViewState extends State<EditProductView> {
           ),
         );
       });
+    }
+  }
+
+  void _loadShelfName() async {
+    if (widget.product.shelfId != null) {
+      final shelf = await _shelfService.getShelfById(widget.product.shelfId!);
+      if (mounted) {
+        setState(() {
+          _shelfName = shelf?.name ?? 'Estante eliminado';
+        });
+      }
     }
   }
 
@@ -199,11 +216,37 @@ class _EditProductViewState extends State<EditProductView> {
                     ],
                   ),
                 ),
+                
+              if (_shelfName != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.teal.shade50,
+                    border: Border.all(color: Colors.teal),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.inventory_2, color: Colors.teal),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Estante asignado: $_shelfName',
+                          style: const TextStyle(
+                            color: Colors.teal,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               _textField(_nameController, 'Nombre'),
               _textField(_descController, 'Descripción'),
-              _textField(_priceController, 'Precio',
+              _textField(_priceController, 'Precio Bs',
                   inputType: TextInputType.number),
-              _textField(_stockController, 'Stock',
+              _textField(_stockController, 'Cantidad',
                   inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
               DropdownButtonFormField<String>(
@@ -256,6 +299,19 @@ class _EditProductViewState extends State<EditProductView> {
               else if (_imageUrlController.text.isNotEmpty)
                 Image.network(_imageUrlController.text, height: 120),
               const SizedBox(height: 12),
+              /*if (_shelfName != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextFormField(
+                    enabled: false,
+                    initialValue: _shelfName,
+                    decoration: const InputDecoration(
+                      labelText: 'Estante Asignado',
+                      border: OutlineInputBorder(),
+                      filled: true,
+                    ),
+                  ),
+                ),*/
               ElevatedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today),

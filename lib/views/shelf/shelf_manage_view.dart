@@ -15,12 +15,39 @@ class ShelfManagementPage extends StatefulWidget {
 
 class _ShelfManagementPageState extends State<ShelfManagementPage> {
   final service = FirebaseShelfService();
-  late Future<List<ShelfModel>> _shelvesFuture;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<ShelfModel> _allShelves = [];
+  List<ShelfModel> _filteredShelves = [];
 
   @override
   void initState() {
     super.initState();
-    _shelvesFuture = service.getAllShelves();
+    _loadShelves();
+    _searchController.addListener(_applySearch);
+  }
+
+  void _loadShelves() async {
+    final shelves = await service.getAllShelves();
+    setState(() {
+      _allShelves = shelves;
+      _filteredShelves = shelves;
+    });
+  }
+
+  void _applySearch() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredShelves = _allShelves
+          .where((shelf) => shelf.name.toLowerCase().contains(query))
+          .toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -29,92 +56,92 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
       appBar: AppBar(
         title: const Text('Gestión de Estantes'),
       ),
-      body: FutureBuilder<List<ShelfModel>>(
-        future: _shelvesFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No hay estantes registrados.'));
-          }
-
-          final shelves = snapshot.data!;
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: shelves.length,
-            separatorBuilder: (context, index) => const Divider(),
-            itemBuilder: (context, index) {
-              final shelf = shelves[index];
-              return ListTile(
-                leading: const CircleAvatar(
-                  backgroundColor: Colors.teal,
-                  radius: 24,
-                  child: Icon(Icons.inventory_2),
-                ),
-                title: Text(shelf.name),
-                subtitle: Text(shelf.description),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '${shelf.productsCount} productos',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Editar Estante',
-                      onPressed: () async {
-                        final wasUpdated = await Navigator.push<bool>(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditShelfPage(shelf: shelf),
-                          ),
-                        );
-                        if (wasUpdated == true) {
-                          setState(() {
-                            _shelvesFuture = service.getAllShelves();
-                          });
-                        }
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Eliminar Estante',
-                      onPressed: () async {
-                        await _confirmDelete(context, shelf.id);
-                      },
-                    ),
-                  ],
-                ),
-                onTap: () async {
-                  final wasUpdated = await Navigator.push<bool>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ShelfDetailView(shelf: shelf),
-                    ),
-                  );
-                  if (wasUpdated == true) {
-                      setState(() {
-                        _shelvesFuture = service.getAllShelves(); // ✅
-                    }); // Refresca la lista al volver
-                  }
-                },
-              );
-            },
-          );
-        },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Buscar por nombre de estante...',
+                prefixIcon: const Icon(Icons.search),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          Expanded(
+            child: _filteredShelves.isEmpty
+                ? const Center(child: Text('No se encontraron estantes.'))
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _filteredShelves.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final shelf = _filteredShelves[index];
+                      return ListTile(
+                        leading: const CircleAvatar(
+                          backgroundColor: Colors.teal,
+                          radius: 24,
+                          child: Icon(Icons.inventory_2),
+                        ),
+                        title: Text(shelf.name),
+                        subtitle: Text(shelf.description),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundColor: Colors.teal.shade100,
+                              child: Text(
+                                '${shelf.productsCount}',
+                                style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              tooltip: 'Editar Estante',
+                              onPressed: () async {
+                                final wasUpdated = await Navigator.push<bool>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => EditShelfPage(shelf: shelf),
+                                  ),
+                                );
+                                if (wasUpdated == true) _loadShelves();
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              tooltip: 'Eliminar Estante',
+                              onPressed: () async {
+                                await _confirmDelete(context, shelf.id);
+                              },
+                            ),
+                          ],
+                        ),
+                        onTap: () async {
+                          final wasUpdated = await Navigator.push<bool>(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ShelfDetailView(shelf: shelf),
+                            ),
+                          );
+                          if (wasUpdated == true) _loadShelves();
+                        },
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.pushNamed(context, '/add-shelf').then((wasAdded) {
-            if (wasAdded == true) {
-              setState(() {
-                _shelvesFuture = service.getAllShelves(); // ✅
-              });
-            }
+            if (wasAdded == true) _loadShelves();
           });
         },
         tooltip: 'Agregar Estante',
@@ -146,9 +173,7 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
 
     if (confirmed == true) {
       await service.deleteShelf(shelfId);
-      setState(() {
-        _shelvesFuture = service.getAllShelves();
-      }); // Refrescar la lista
+      _loadShelves();
     }
   }
 }

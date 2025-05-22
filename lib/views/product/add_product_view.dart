@@ -7,6 +7,7 @@ import '../../services/firebase_product_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_farmacia/services/cloudinary_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;
@@ -36,18 +37,55 @@ class _AddProductViewState extends State<AddProductView> {
   String _imageInputMode = 'URL'; // o 'Archivo'
 
   Future<void> _pickImage(ImageSource source) async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: source, imageQuality: 75);
+    try {
+      if (source == ImageSource.camera) {
+        final status = await Permission.camera.request();
+        if (!status.isGranted) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permiso de cámara denegado')),
+          );
+          return;
+        }
+      }
 
-    if (picked != null) {
-      setState(() {
-        _selectedImageFile = File(picked.path);
-        _imageUrlController.clear();
-      });
+      if (source == ImageSource.gallery && Platform.isAndroid) {
+        final androidVersion =
+            int.tryParse(Platform.version.split('.').first) ?? 30;
+        if (androidVersion < 10) {
+          final storageStatus = await Permission.storage.request();
+          if (!storageStatus.isGranted) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content: Text('Permiso de almacenamiento denegado')),
+            );
+            return;
+          }
+        }
+      }
 
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(source: source, imageQuality: 75);
+
+      if (picked != null) {
+        setState(() {
+          _selectedImageFile = File(picked.path);
+          _imageUrlController.clear();
+        });
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Imagen seleccionada')),
+        );
+      }
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Imagen seleccionada')),
+        SnackBar(
+          content: Text('Error al acceder a la cámara/galería: $e'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -185,7 +223,7 @@ class _AddProductViewState extends State<AddProductView> {
                 icon: const Icon(Icons.calendar_today),
                 label: Text(_selectedDate == null
                     ? 'Seleccionar Fecha de Vencimiento'
-                    : DateFormat('yyyy-MM-dd').format(_selectedDate!)),
+                    : DateFormat('dd-MM-yyyy').format(_selectedDate!)),
               ),
               const SizedBox(height: 24),
               ElevatedButton(

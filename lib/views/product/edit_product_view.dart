@@ -74,11 +74,11 @@ class _EditProductViewState extends State<EditProductView> {
       _alertIcon = Icons.error;
     } else if (diff <= 30) {
       _alertMessage = 'Este producto vence en $diff días.';
-      _alertColor = Colors.orange.shade300;
+      _alertColor = Colors.yellow.shade300;
       _alertIcon = Icons.calendar_today;
     } else if (diff <= 60) {
       _alertMessage = 'Este producto vence en $diff días.';
-      _alertColor = Colors.blue.shade300;
+      _alertColor = Colors.orange.shade300;
       _alertIcon = Icons.event_note;
     } else if (diff <= 90) {
       _alertMessage = 'Este producto vence en $diff días.';
@@ -315,7 +315,7 @@ class _EditProductViewState extends State<EditProductView> {
               ElevatedButton.icon(
                 onPressed: _pickDate,
                 icon: const Icon(Icons.calendar_today),
-                label: Text(DateFormat('yyyy-MM-dd').format(_selectedDate)),
+                label: Text(DateFormat('dd-MM-yyyy').format(_selectedDate)),
               ),
               const SizedBox(height: 24),
               ElevatedButton(

@@ -220,15 +220,15 @@ class _NotificationViewState extends State<NotificationView> {
       case '30 días':
         return {
           'title': 'Vencen en 30 días',
-          'color': Colors.orange,
-          'background': Colors.orange.shade50,
+          'color': Colors.yellow,
+          'background': Colors.yellow.shade50,
           'icon': Icons.hourglass_bottom,
         };
       case '60 días':
         return {
           'title': 'Vencen en 60 días',
-          'color': Colors.blue,
-          'background': Colors.blue.shade50,
+          'color': Colors.orange,
+          'background': Colors.orange.shade50,
           'icon': Icons.calendar_today,
         };
       case '90 días':

@@ -40,11 +40,11 @@ class _DetailProductViewState extends State<DetailProductView> {
       _alertIcon = Icons.error;
     } else if (diff <= 30) {
       _alertMessage = 'Este producto vence en $diff días.';
-      _alertColor = Colors.orange.shade300;
+      _alertColor = Colors.yellow.shade300;
       _alertIcon = Icons.calendar_today;
     } else if (diff <= 60) {
       _alertMessage = 'Este producto vence en $diff días.';
-      _alertColor = Colors.blue.shade300;
+      _alertColor = Colors.orange.shade300;
       _alertIcon = Icons.event_note;
     } else if (diff <= 90) {
       _alertMessage = 'Este producto vence en $diff días.';
@@ -154,7 +154,7 @@ class _DetailProductViewState extends State<DetailProductView> {
           _infoCard(
             icon: Icons.calendar_today,
             title: 'Fecha de Vencimiento',
-            value: DateFormat('yyyy-MM-dd').format(p.expirationDate),
+            value: DateFormat('dd-MM-yyyy').format(p.expirationDate),
           ),
           const SizedBox(height: 32),
           Center(

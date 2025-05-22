@@ -131,13 +131,13 @@ class ShelfNotificationCard extends StatelessWidget {
       case '30 días':
         return {
           'title': 'Vencen en 30 días',
-          'color': Colors.orange.shade300,
+          'color': Colors.yellow.shade300,
           'icon': Icons.hourglass_bottom,
         };
       case '60 días':
         return {
           'title': 'Vencen en 60 días',
-          'color': Colors.lightBlue.shade400,
+          'color': Colors.orange.shade400,
           'icon': Icons.calendar_today,
         };
       case '90 días':

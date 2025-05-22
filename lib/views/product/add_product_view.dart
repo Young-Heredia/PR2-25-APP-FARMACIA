@@ -185,7 +185,7 @@ class _AddProductViewState extends State<AddProductView> {
                 icon: const Icon(Icons.calendar_today),
                 label: Text(_selectedDate == null
                     ? 'Seleccionar Fecha de Vencimiento'
-                    : DateFormat('yyyy-MM-dd').format(_selectedDate!)),
+                    : DateFormat('dd-MM-yyyy').format(_selectedDate!)),
               ),
               const SizedBox(height: 24),
               ElevatedButton(

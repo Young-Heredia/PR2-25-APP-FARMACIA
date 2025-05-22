@@ -152,9 +152,9 @@ class ExpiringProductByShelfView extends StatelessWidget {
       case '0 días':
         return {'color': Colors.redAccent};
       case '30 días':
-        return {'color': Colors.orange.shade400};
+        return {'color': Colors.yellow.shade400};
       case '60 días':
-        return {'color': Colors.blue.shade400};
+        return {'color': Colors.orange.shade400};
       case '90 días':
         return {'color': Colors.green.shade400};
       default:

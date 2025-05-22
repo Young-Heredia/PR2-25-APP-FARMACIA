@@ -54,16 +54,22 @@ class _ShelfDetailViewState extends State<ShelfDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvoked: (didPop) {
-        if (!didPop) {
-          Navigator.pop(
-              context, _wasUpdated); // 🔥 Retorna true si hubo cambios
-        }
+    return WillPopScope(
+      onWillPop: () async {
+        Navigator.pop(context, _wasUpdated); // ✅ Al presionar "atrás"
+        return false; // impide que Flutter haga pop automático
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Detalle del Estante')),
+        appBar: AppBar(
+          title: const Text('Detalle del Estante'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              Navigator.pop(
+                  context, _wasUpdated); // ✅ Al presionar el ícono de back
+            },
+          ),
+        ),
         body: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(

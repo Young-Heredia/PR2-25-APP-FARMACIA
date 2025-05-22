@@ -140,7 +140,7 @@ class _ProductManageViewState extends State<ProductManageView> {
       return {
         'icon': Icons.warning_amber_rounded,
         'color': Colors.red,
-        'tooltip': 'Medicamento vencido',
+        'tooltip': 'Venció hace ${-days} día${-days == 1 ? '' : 's'}',
       };
     } else if (days == 0) {
       return {
@@ -151,26 +151,26 @@ class _ProductManageViewState extends State<ProductManageView> {
     } else if (days <= 30) {
       return {
         'icon': Icons.circle,
-        'color': Colors.orange,
-        'tooltip': 'Vence en 30 días',
+        'color': Colors.yellow.shade600,
+        'tooltip': 'Vence en $days día${days == 1 ? '' : 's'}',
       };
     } else if (days <= 60) {
       return {
         'icon': Icons.circle,
-        'color': Colors.blue,
-        'tooltip': 'Vence en 60 días',
+        'color': Colors.orange,
+        'tooltip': 'Vence en $days días',
       };
     } else if (days <= 90) {
       return {
         'icon': Icons.circle,
         'color': Colors.green,
-        'tooltip': 'Vence en 90 días',
+        'tooltip': 'Vence en $days días',
       };
     } else {
       return {
         'icon': Icons.check,
         'color': Colors.green,
-        'tooltip': 'Vence después de 90 días',
+        'tooltip': 'Vence en más de 90 días',
       };
     }
   }

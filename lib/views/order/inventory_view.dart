@@ -6,6 +6,7 @@ import '../../models/order_model.dart';
 import '../../services/firebase_product_service.dart';
 import '../../services/firebase_order_service.dart';
 import '../../widgets/product_card.dart';
+import 'package:app_farmacia/views/product/detail_product_view.dart';
 
 class InventoryView extends StatefulWidget {
   const InventoryView({super.key});
@@ -49,15 +50,15 @@ class _InventoryViewState extends State<InventoryView> {
   }
 
   void _applySearch() {
-  final query = _searchController.text.toLowerCase();
-  setState(() {
-    _filteredProducts = _products.where((p) {
-      return p.name.toLowerCase().contains(query) ||
-             p.description.toLowerCase().contains(query) ||
-             p.supplier.toLowerCase().contains(query);
-    }).toList();
-  });
-}
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredProducts = _products.where((p) {
+        return p.name.toLowerCase().contains(query) ||
+            p.description.toLowerCase().contains(query) ||
+            p.supplier.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
 
   double get totalPrice {
     return _products.fold(0.0, (sum, p) {
@@ -93,6 +94,28 @@ class _InventoryViewState extends State<InventoryView> {
 
     if (selectedItems.isEmpty) return;
 
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Confirmar Venta?'),
+        content: Text(
+          'Estás a punto de registrar una venta por Bs ${totalPrice.toStringAsFixed(2)}.\n\n¿Deseas continuar?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     final newOrder = OrderModel(
       id: '',
       date: DateTime.now(),
@@ -102,8 +125,29 @@ class _InventoryViewState extends State<InventoryView> {
 
     try {
       await orderService.addOrder(newOrder);
-      if (!mounted) return;
 
+      for (final item in selectedItems) {
+        final product = _products.firstWhere((p) => p.id == item.productId);
+        final newStock = product.stock - item.quantity;
+
+        if (newStock >= 0) {
+          final updatedProduct = ProductModel(
+            id: product.id,
+            name: product.name,
+            description: product.description,
+            price: product.price,
+            stock: newStock,
+            imageUrl: product.imageUrl,
+            expirationDate: product.expirationDate,
+            supplier: product.supplier,
+            shelfId: product.shelfId,
+          );
+
+          await productService.updateProduct(updatedProduct);
+        }
+      }
+
+      if (!mounted) return;
       setState(() {
         for (var p in _products) {
           productQuantities[p.id] = 0;
@@ -140,38 +184,54 @@ class _InventoryViewState extends State<InventoryView> {
                 child: ListView(
                   padding: const EdgeInsets.all(12),
                   children: [
-const SizedBox(height: 16),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 
-                        'Buscar por nombre, descripción o laboratorio...',
+                        hintText:
+                            'Buscar por nombre, descripción o laboratorio...',
                         prefixIcon: const Icon(Icons.search),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                    ),                    
+                    ),
                     const SizedBox(height: 24),
                     const Text(
                       '📦 Productos en Inventario',
-                      style: TextStyle(
-                        fontSize: 18, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 12),
                     if (_filteredProducts.isEmpty)
                       const Center(
-                        child: 
-                        Text('No se encontraron coincidencias.')),
-                    ..._filteredProducts.map((p) => ProductCard(
+                          child: Text('No se encontraron coincidencias.')),
+                    ..._filteredProducts.map((p) {
+                      final isExpired =
+                          p.expirationDate.isBefore(DateTime.now());
+
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => DetailProductView(product: p),
+                            ),
+                          );
+                        },
+                        child: ProductCard(
                           image: p.imageUrl,
                           name: p.name,
                           description: p.description,
                           price: p.price,
                           quantity: productQuantities[p.id] ?? 0,
-                          onAdd: () => _incrementQty(p.id),
-                          onRemove: () => _decrementQty(p.id),
-                        )),
+                          onAdd: isExpired ? null : () => _incrementQty(p.id),
+                          onRemove:
+                              isExpired ? null : () => _decrementQty(p.id),
+                          isExpired: isExpired,
+                        ),
+                      );
+                    }),
                   ],
                 ),
               ),
@@ -209,8 +269,8 @@ const SizedBox(height: 16),
               const SizedBox(height: 4),
               Text(
                 'Bs ${totalPrice.toStringAsFixed(2)}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 20),
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
               ),
             ],
           ),
@@ -221,8 +281,7 @@ const SizedBox(height: 16),
             label: const Text('COMPRAR'),
             style: ElevatedButton.styleFrom(
               backgroundColor: totalPrice > 0 ? Colors.teal : Colors.grey,
-              padding: 
-              const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(32)),
             ),

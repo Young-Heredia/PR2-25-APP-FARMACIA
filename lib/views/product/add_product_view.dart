@@ -1,14 +1,15 @@
 // lib/views/product/add_product_view.dart
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../models/product_model.dart';
-import '../../services/firebase_product_service.dart';
+import 'package:app_farmacia/models/product_model.dart';
+import 'package:app_farmacia/services/firebase_product_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_farmacia/services/cloudinary_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:intl/intl.dart';
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;
@@ -96,7 +97,29 @@ class _AddProductViewState extends State<AddProductView> {
 
       if (!mounted || picked == null) return;
 
-      final imageFile = File(picked.path);
+// 📐 Recorte cuadrado
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 75,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar Imagen',
+            toolbarColor: Colors.teal,
+            hideBottomControls: true,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Recortar Imagen',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) return;
+
+      final imageFile = File(croppedFile.path);
+
       if (!await imageFile.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

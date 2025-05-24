@@ -16,13 +16,36 @@ class ProductManageView extends StatefulWidget {
 
 class _ProductManageViewState extends State<ProductManageView> {
   final service = FirebaseProductService();
+  late Future<List<ProductModel>> _productsFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _productsFuture = service.getAllProducts();
+  }
+
+  Future<void> _refreshProducts() async {
+    final newFuture = service.getAllProducts();
+    setState(() {
+      _productsFuture = newFuture;
+    });
+    await newFuture;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Lista de productos actualizada'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Gestión de Productos')),
       body: FutureBuilder<List<ProductModel>>(
-        future: service.getAllProducts(),
+        future: _productsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -34,86 +57,89 @@ class _ProductManageViewState extends State<ProductManageView> {
 
           final products = snapshot.data!;
 
-          return ListView.builder(
-            itemCount: products.length,
-            itemBuilder: (context, index) {
-              final p = products[index];
-              final status = _getExpirationStatus(p);
+          return RefreshIndicator(
+            onRefresh: _refreshProducts,
+            child: ListView.builder(
+              itemCount: products.length,
+              itemBuilder: (context, index) {
+                final p = products[index];
+                final status = _getExpirationStatus(p);
 
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: NetworkImage(p.imageUrl),
-                ),
-                title: Row(
-                  children: [
-                    Expanded(child: Text(p.name)),
-                    Tooltip(
-                      message: status['tooltip'],
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: status['color'],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          status['icon'],
-                          color: Colors.white,
-                          size: 12,
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: NetworkImage(p.imageUrl),
+                  ),
+                  title: Row(
+                    children: [
+                      Expanded(child: Text(p.name)),
+                      Tooltip(
+                        message: status['tooltip'],
+                        child: Container(
+                          width: 20,
+                          height: 20,
+                          decoration: BoxDecoration(
+                            color: status['color'],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            status['icon'],
+                            color: Colors.white,
+                            size: 12,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                subtitle: Text(
-                    'Cantidad: ${p.stock}  |  Bs ${p.price.toStringAsFixed(2)}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      tooltip: 'Editar Producto',
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => EditProductView(
-                                product: p), // ✅ PASA EL PRODUCTO
-                          ),
-                        ).then((_) =>
-                            setState(() {})); // Refresca la lista al volver
-                      },
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      tooltip: 'Eliminar Producto',
-                      onPressed: () async {
-                        await service.deleteProduct(p.id);
-                        setState(() {});
-                      },
-                    ),
-                  ],
-                ),
-                onTap: () async {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Cargando detalle...'),
-                      duration: Duration(milliseconds: 800),
-                      backgroundColor: Colors.teal,
-                      behavior: SnackBarBehavior.floating,
-                      margin: EdgeInsets.all(16),
-                    ),
-                  );
-                  await Future.delayed(const Duration(milliseconds: 800));
-                  if (!context.mounted) return;
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => DetailProductView(product: p)),
-                  );
-                },
-              );
-            },
+                    ],
+                  ),
+                  subtitle: Text(
+                      'Cantidad: ${p.stock}  |  Bs ${p.price.toStringAsFixed(2)}'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.blue),
+                        tooltip: 'Editar Producto',
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => EditProductView(
+                                  product: p), // PASA EL PRODUCTO
+                            ),
+                          ).then((_) =>
+                              _refreshProducts()); // Refresca la lista al volver
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        tooltip: 'Eliminar Producto',
+                        onPressed: () async {
+                          await service.deleteProduct(p.id);
+                          _refreshProducts();
+                        },
+                      ),
+                    ],
+                  ),
+                  onTap: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Cargando detalle...'),
+                        duration: Duration(milliseconds: 800),
+                        backgroundColor: Colors.teal,
+                        behavior: SnackBarBehavior.floating,
+                        margin: EdgeInsets.all(16),
+                      ),
+                    );
+                    await Future.delayed(const Duration(milliseconds: 800));
+                    if (!context.mounted) return;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => DetailProductView(product: p)),
+                    );
+                  },
+                );
+              },
+            ),
           );
         },
       ),
@@ -124,7 +150,7 @@ class _ProductManageViewState extends State<ProductManageView> {
             context,
             MaterialPageRoute(builder: (_) => const AddProductView()),
           ).then((wasAdded) {
-            if (wasAdded == true) setState(() {});
+            if (wasAdded == true) _refreshProducts();
           });
         },
         child: const Icon(Icons.add),

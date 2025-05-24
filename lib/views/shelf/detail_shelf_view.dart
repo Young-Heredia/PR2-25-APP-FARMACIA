@@ -1,11 +1,11 @@
 // lib/views/shelf/detail_shelf_view.dart
 
 import 'package:flutter/material.dart';
-import '../../models/shelf_model.dart';
-import '../../models/product_model.dart';
-import '../../services/firebase_product_service.dart';
-import '../../services/firebase_shelf_service.dart';
-import 'assign_products_to_shelf_view.dart';
+import 'package:app_farmacia/models/product_model.dart';
+import 'package:app_farmacia/models/shelf_model.dart';
+import 'package:app_farmacia/services/firebase_product_service.dart';
+import 'package:app_farmacia/services/firebase_shelf_service.dart';
+import './assign_products_to_shelf_view.dart';
 
 class ShelfDetailView extends StatefulWidget {
   final ShelfModel shelf;
@@ -54,10 +54,12 @@ class _ShelfDetailViewState extends State<ShelfDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pop(context, _wasUpdated); // ✅ Al presionar "atrás"
-        return false; // impide que Flutter haga pop automático
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          Navigator.pop(context, _wasUpdated); // ✅ Al presionar "atrás"
+        }
       },
       child: Scaffold(
         appBar: AppBar(

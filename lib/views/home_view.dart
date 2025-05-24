@@ -7,6 +7,7 @@ import 'package:app_farmacia/services/firebase_shelf_service.dart';
 import 'package:app_farmacia/models/product_model.dart';
 import 'package:app_farmacia/models/shelf_model.dart';
 import 'package:app_farmacia/views/notification/expiring_product_by_shelf_view.dart';
+import 'package:intl/intl.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -29,6 +30,30 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     _productsFuture = _productService.getAllProducts();
     _shelvesFuture = _shelfService.getAllShelves();
+  }
+
+  Future<void> _refreshData() async {
+    final newProductsFuture = _productService.getAllProducts();
+    final newShelvesFuture = _shelfService.getAllShelves();
+
+    setState(() {
+      _productsFuture = newProductsFuture;
+      _shelvesFuture = newShelvesFuture;
+    });
+
+    await Future.wait([newProductsFuture, newShelvesFuture]);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Datos actualizados correctamente'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 
   @override
@@ -83,19 +108,19 @@ class _HomeViewState extends State<HomeView> {
               }
 
               return RefreshIndicator(
-                onRefresh: () async {
-                  setState(() {
-                    _productsFuture = _productService.getAllProducts();
-                    _shelvesFuture = _shelfService.getAllShelves();
-                  });
-                },
+                onRefresh: _refreshData,
                 child: ListView(
                   padding: const EdgeInsets.all(16),
-                  children: grouped.entries
-                      .where((e) => e.value.isNotEmpty)
-                      .map((e) =>
-                          _buildNotificationCard(e.key, e.value, shelfMap))
-                      .toList(),
+                  children: [
+                    Text(
+                      'Última actualización: ${DateFormat('dd/MM/yyyy – HH:mm').format(DateTime.now())}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    ...grouped.entries.where((e) => e.value.isNotEmpty).map(
+                        (e) => _buildNotificationCard(e.key, e.value, shelfMap))
+                  ],
                 ),
               );
             },

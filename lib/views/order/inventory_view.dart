@@ -49,6 +49,14 @@ class _InventoryViewState extends State<InventoryView> {
     return loaded;
   }
 
+  Future<void> _refreshProducts() async {
+    final refreshed = await _loadProducts();
+    setState(() {
+      _productsFuture = Future.value(refreshed);
+      _applySearch(); // reaplicar búsqueda si había filtro
+    });
+  }
+
   void _applySearch() {
     final query = _searchController.text.toLowerCase();
     setState(() {
@@ -181,58 +189,66 @@ class _InventoryViewState extends State<InventoryView> {
             children: [
               Padding(
                 padding: const EdgeInsets.only(bottom: 100),
-                child: ListView(
-                  padding: const EdgeInsets.all(12),
-                  children: [
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText:
-                            'Buscar por nombre, descripción o laboratorio...',
-                        prefixIcon: const Icon(Icons.search),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                child: RefreshIndicator(
+                  onRefresh: _refreshProducts,
+                  color: Colors.teal,
+                  backgroundColor: Colors.white,
+                  strokeWidth: 2,
+                  displacement: 30,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12),
+                    children: [
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText:
+                              'Buscar por nombre, descripción o laboratorio...',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      '📦 Productos en Inventario',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 12),
-                    if (_filteredProducts.isEmpty)
-                      const Center(
-                          child: Text('No se encontraron coincidencias.')),
-                    ..._filteredProducts.map((p) {
-                      final isExpired =
-                          p.expirationDate.isBefore(DateTime.now());
+                      const SizedBox(height: 24),
+                      const Text(
+                        '📦 Productos en Inventario',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 12),
+                      if (_filteredProducts.isEmpty)
+                        const Center(
+                            child: Text('No se encontraron coincidencias.')),
+                      ..._filteredProducts.map((p) {
+                        final isExpired =
+                            p.expirationDate.isBefore(DateTime.now());
 
-                      return GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => DetailProductView(product: p),
-                            ),
-                          );
-                        },
-                        child: ProductCard(
-                          image: p.imageUrl,
-                          name: p.name,
-                          description: p.description,
-                          price: p.price,
-                          quantity: productQuantities[p.id] ?? 0,
-                          onAdd: isExpired ? null : () => _incrementQty(p.id),
-                          onRemove:
-                              isExpired ? null : () => _decrementQty(p.id),
-                          isExpired: isExpired,
-                        ),
-                      );
-                    }),
-                  ],
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => DetailProductView(product: p),
+                              ),
+                            );
+                          },
+                          child: ProductCard(
+                            image: p.imageUrl,
+                            name: p.name,
+                            description: p.description,
+                            price: p.price,
+                            quantity: productQuantities[p.id] ?? 0,
+                            onAdd: isExpired ? null : () => _incrementQty(p.id),
+                            onRemove:
+                                isExpired ? null : () => _decrementQty(p.id),
+                            isExpired: isExpired,
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                 ),
               ),
               Positioned(

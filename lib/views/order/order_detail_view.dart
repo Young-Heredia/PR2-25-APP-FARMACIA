@@ -38,7 +38,7 @@ class _OrderDetailViewState extends State<OrderDetailView> {
 
   @override
   Widget build(BuildContext context) {
-    final orderCode = '25-${widget.order.id.padLeft(6, '0')}';
+    final orderCode = widget.order.id.padLeft(6, '0');
     final formattedDate =
         DateFormat('dd-MM-yyyy – HH:mm').format(widget.order.date);
 

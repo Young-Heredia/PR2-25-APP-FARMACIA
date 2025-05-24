@@ -66,6 +66,8 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
 
+  flutter_native_splash: ^2.3.2
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
@@ -107,9 +109,21 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
-
+ 
   assets:
-    - assets/blister1.jpg
-    - assets/blister2.jpg
-    - assets/blister3.jpg
-    - assets/caja_medicamento.jpg
+    - assets/images/blister/blister1.jpg
+    - assets/images/blister/blister2.jpg
+    - assets/images/blister/blister3.jpg
+    - assets/images/blister/caja_medicamento.jpg
+    - assets/images/logo/logo_splash.png
+
+# SPLASH SCREEN
+#flutter_native_splash:
+#color: "#ffffff"
+#image: assets/images/logo_splash.png
+#branding: assets/images/branding.png # opcional
+#android: true
+#ios: true
+#web: false
+#android_gravity: center
+#fullscreen: true

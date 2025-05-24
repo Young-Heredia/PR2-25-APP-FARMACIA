@@ -167,7 +167,8 @@ class _NotificationViewState extends State<NotificationView> {
                 final shelfProducts = entry.value;
                 final shelfName = shelfMap[shelfId] ?? 'Sin estante asignado';
 
-                return GestureDetector(
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -181,13 +182,22 @@ class _NotificationViewState extends State<NotificationView> {
                     );
                   },
                   child: Container(
-                    alignment: Alignment.centerLeft,
+                    width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white.withOpacity(0.8),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Cantidad: ${shelfProducts.length}'),
-                        Text('Estante: $shelfName'),
+                        Text('Cantidad: ${shelfProducts.length}',
+                            style:
+                                const TextStyle(fontWeight: FontWeight.w500)),
+                        Text('Estante: $shelfName',
+                            style: const TextStyle(color: Colors.black87)),
                       ],
                     ),
                   ),

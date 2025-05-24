@@ -40,7 +40,8 @@ class _DetailProductViewState extends State<DetailProductView> {
       _alertIcon = Icons.error;
     } else if (diff <= 30) {
       _alertMessage = 'Este producto vence en $diff días.';
-      _alertColor = Colors.yellow.shade300;
+      //_alertColor = Colors.yellow.shade300;
+      _alertColor = const Color(0xFFFFC107);
       _alertIcon = Icons.calendar_today;
     } else if (diff <= 60) {
       _alertMessage = 'Este producto vence en $diff días.';

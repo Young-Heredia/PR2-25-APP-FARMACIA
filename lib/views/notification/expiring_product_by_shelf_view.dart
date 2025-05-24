@@ -78,68 +78,64 @@ class ExpiringProductByShelfView extends StatelessWidget {
           const SizedBox(height: 16),
 
           // 🔸 Lista de productos con navegación al detalle
-          ...products
-              .map((p) => GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => DetailProductView(product: p),
-                        ),
-                      );
-                    },
-                    child: Card(
-                      elevation: 2,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 📷 Imagen del producto
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: p.imageUrl.isNotEmpty
-                                  ? Image.network(
-                                      p.imageUrl,
-                                      width: 64,
-                                      height: 64,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                          Icons.broken_image,
-                                          size: 64),
-                                    )
-                                  : const Icon(Icons.image_not_supported,
-                                      size: 64),
-                            ),
-                            const SizedBox(width: 12),
-
-                            // 📝 Detalles
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(p.name,
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16)),
-                                  const SizedBox(height: 4),
-                                  Text('Proveedor: ${p.supplier}'),
-                                  Text('Cantidad: ${p.stock}'),
-                                  Text(
-                                      'Vence: ${DateFormat('dd-MM-yyyy').format(p.expirationDate)}'),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+          ...products.map((p) => GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailProductView(product: p),
                     ),
-                  ))
-              .toList(),
+                  );
+                },
+                child: Card(
+                  elevation: 2,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 📷 Imagen del producto
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: p.imageUrl.isNotEmpty
+                              ? Image.network(
+                                  p.imageUrl,
+                                  width: 64,
+                                  height: 64,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) =>
+                                      const Icon(Icons.broken_image, size: 64),
+                                )
+                              : const Icon(Icons.image_not_supported, size: 64),
+                        ),
+                        const SizedBox(width: 12),
+
+                        // 📝 Detalles
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(p.name,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16)),
+                              const SizedBox(height: 4),
+                              Text('Proveedor: ${p.supplier}'),
+                              Text('Cantidad: ${p.stock}'),
+                              Text(
+                                  'Vence: ${DateFormat('dd-MM-yyyy').format(p.expirationDate)}'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )),
         ],
       ),
     );

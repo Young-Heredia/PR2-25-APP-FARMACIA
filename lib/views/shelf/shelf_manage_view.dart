@@ -27,7 +27,7 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
     _searchController.addListener(_applySearch);
   }
 
-  void _loadShelves() async {
+  Future<void> _loadShelves() async {
     final shelves = await service.getAllShelves();
     setState(() {
       _allShelves = shelves;
@@ -65,76 +65,97 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
               decoration: InputDecoration(
                 hintText: 'Buscar por nombre de estante...',
                 prefixIcon: const Icon(Icons.search),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
           Expanded(
-            child: _filteredShelves.isEmpty
-                ? const Center(child: Text('No se encontraron estantes.'))
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _filteredShelves.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final shelf = _filteredShelves[index];
-                      return ListTile(
-                        leading: const CircleAvatar(
-                          backgroundColor: Colors.teal,
-                          radius: 24,
-                          child: Icon(Icons.inventory_2),
-                        ),
-                        title: Text(shelf.name),
-                        subtitle: Text(shelf.description),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: Colors.teal.shade100,
-                              child: Text(
-                                '${shelf.productsCount}',
-                                style: const TextStyle(
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await _loadShelves();
+                if (!mounted) return;
+                
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Lista de estantes actualizada'),
+                      duration: Duration(seconds: 2),
+                      backgroundColor: Colors.teal,
+                      behavior: SnackBarBehavior.floating,
+                      margin: EdgeInsets.all(16),
+                    ),
+                  );
+              },
+              child: _filteredShelves.isEmpty
+                  ? const Center(child: Text('No se encontraron estantes.'))
+                  : ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _filteredShelves.length,
+                      separatorBuilder: (_, __) => const Divider(),
+                      itemBuilder: (context, index) {
+                        final shelf = _filteredShelves[index];
+                        return ListTile(
+                          leading: const CircleAvatar(
+                            backgroundColor: Colors.teal,
+                            radius: 24,
+                            child: Icon(Icons.inventory_2),
+                          ),
+                          title: Text(shelf.name),
+                          subtitle: Text(shelf.description),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: Colors.teal.shade100,
+                                child: Text(
+                                  '${shelf.productsCount}',
+                                  style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.teal),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.edit, color: Colors.blue),
-                              tooltip: 'Editar Estante',
-                              onPressed: () async {
-                                final wasUpdated = await Navigator.push<bool>(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => EditShelfPage(shelf: shelf),
+                                    color: Colors.teal,
                                   ),
-                                );
-                                if (wasUpdated == true) _loadShelves();
-                              },
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete, color: Colors.red),
-                              tooltip: 'Eliminar Estante',
-                              onPressed: () async {
-                                await _confirmDelete(context, shelf.id);
-                              },
-                            ),
-                          ],
-                        ),
-                        onTap: () async {
-                          final wasUpdated = await Navigator.push<bool>(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ShelfDetailView(shelf: shelf),
-                            ),
-                          );
-                          if (wasUpdated == true) _loadShelves();
-                        },
-                      );
-                    },
-                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.edit, color: Colors.blue),
+                                tooltip: 'Editar Estante',
+                                onPressed: () async {
+                                  final wasUpdated = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          EditShelfPage(shelf: shelf),
+                                    ),
+                                  );
+                                  if (wasUpdated == true) _loadShelves();
+                                },
+                              ),
+                              IconButton(
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                tooltip: 'Eliminar Estante',
+                                onPressed: () async {
+                                  await _confirmDelete(context, shelf.id);
+                                },
+                              ),
+                            ],
+                          ),
+                          onTap: () async {
+                            final wasUpdated = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ShelfDetailView(shelf: shelf),
+                              ),
+                            );
+                            if (wasUpdated == true) _loadShelves();
+                          },
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),
@@ -162,9 +183,7 @@ class _ShelfManagementPageState extends State<ShelfManagementPage> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () =>
-                // TODO: Ejecutar eliminación
-                Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(context, true),
             child: const Text('Eliminar'),
           ),
         ],

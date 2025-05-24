@@ -7,6 +7,7 @@ import 'package:app_farmacia/services/firebase_shelf_service.dart';
 import 'package:app_farmacia/models/product_model.dart';
 import 'package:app_farmacia/models/shelf_model.dart';
 import 'package:app_farmacia/views/notification/expiring_product_by_shelf_view.dart';
+import 'package:intl/intl.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -29,6 +30,30 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     _productsFuture = _productService.getAllProducts();
     _shelvesFuture = _shelfService.getAllShelves();
+  }
+
+  Future<void> _refreshData() async {
+    final newProductsFuture = _productService.getAllProducts();
+    final newShelvesFuture = _shelfService.getAllShelves();
+
+    setState(() {
+      _productsFuture = newProductsFuture;
+      _shelvesFuture = newShelvesFuture;
+    });
+
+    await Future.wait([newProductsFuture, newShelvesFuture]);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Datos actualizados correctamente'),
+          duration: Duration(seconds: 2),
+          backgroundColor: Colors.teal,
+          behavior: SnackBarBehavior.floating,
+          margin: EdgeInsets.all(16),
+        ),
+      );
+    }
   }
 
   @override
@@ -82,13 +107,21 @@ class _HomeViewState extends State<HomeView> {
                 }
               }
 
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: grouped.entries
-                    .where((e) => e.value.isNotEmpty)
-                    .map(
+              return RefreshIndicator(
+                onRefresh: _refreshData,
+                child: ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    Text(
+                      'Última actualización: ${DateFormat('dd/MM/yyyy – HH:mm').format(DateTime.now())}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    ...grouped.entries.where((e) => e.value.isNotEmpty).map(
                         (e) => _buildNotificationCard(e.key, e.value, shelfMap))
-                    .toList(),
+                  ],
+                ),
               );
             },
           );
@@ -167,7 +200,8 @@ class _HomeViewState extends State<HomeView> {
                 final shelfProducts = entry.value;
                 final shelfName = shelfMap[shelfId] ?? 'Sin estante asignado';
 
-                return GestureDetector(
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -181,13 +215,38 @@ class _HomeViewState extends State<HomeView> {
                     );
                   },
                   child: Container(
-                    alignment: Alignment.centerLeft,
+                    width: double.infinity,
                     margin: const EdgeInsets.only(bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white.withOpacity(0.8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Cantidad: ${shelfProducts.length}'),
-                        Text('Estante: $shelfName'),
+                        // Estante info
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Estante: $shelfName',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            Text(
+                              'Cantidad: ${shelfProducts.length}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
                       ],
                     ),
                   ),
@@ -275,16 +334,16 @@ class _HomeViewState extends State<HomeView> {
             setState(() => _selectedIndex = index);
             switch (index) {
               case 1:
-                Navigator.pushNamed(context, '/inventory');
-                break;
-              case 2:
-                Navigator.pushNamed(context, '/orders');
-                break;
-              case 3:
                 Navigator.pushNamed(context, '/product-manage');
                 break;
-              case 4:
+              case 2:
                 Navigator.pushNamed(context, '/shelf-manage');
+                break;
+              case 3:
+                Navigator.pushNamed(context, '/orders');
+                break;
+              case 4:
+                Navigator.pushNamed(context, '/inventory');
                 break;
             }
           },
@@ -292,24 +351,16 @@ class _HomeViewState extends State<HomeView> {
           backgroundColor: Colors.white,
           selectedItemColor: Colors.teal,
           unselectedItemColor: Colors.grey,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               label: 'Inicio',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2_rounded),
-              label: 'Inventario',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Órdenes',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.medical_services_outlined),
-              label: 'Gestión',
+              label: 'Productos',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.view_module),
@@ -317,6 +368,14 @@ class _HomeViewState extends State<HomeView> {
               //icon: Icon(Icons.dashboard_customize),
               //icon: Icon(Icons.widgets_outlined),
               label: 'Estantes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.receipt_long),
+              label: 'Órdenes',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.inventory_2_rounded),
+              label: 'Inventario',
             ),
           ],
         ),

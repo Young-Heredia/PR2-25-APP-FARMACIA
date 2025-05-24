@@ -1,13 +1,15 @@
 // lib/views/product/add_product_view.dart
 
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../../models/product_model.dart';
-import '../../services/firebase_product_service.dart';
+import 'package:app_farmacia/models/product_model.dart';
+import 'package:app_farmacia/services/firebase_product_service.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:app_farmacia/services/cloudinary_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:intl/intl.dart';
 
 class AddProductView extends StatefulWidget {
   final ProductModel? product;
@@ -36,57 +38,117 @@ class _AddProductViewState extends State<AddProductView> {
   DateTime? _selectedDate;
   String _imageInputMode = 'URL'; // o 'Archivo'
 
+  Future<int> _getAndroidSDK() async {
+    final info = await DeviceInfoPlugin().androidInfo;
+    return info.version.sdkInt;
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
+      // 🔐 Solicitud de permisos
       if (source == ImageSource.camera) {
         final status = await Permission.camera.request();
         if (!status.isGranted) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permiso de cámara denegado')),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Permiso de cámara denegado')),
+            );
+          }
           return;
         }
       }
 
       if (source == ImageSource.gallery && Platform.isAndroid) {
-        final androidVersion =
-            int.tryParse(Platform.version.split('.').first) ?? 30;
-        if (androidVersion < 10) {
+        final sdk = await _getAndroidSDK();
+        if (sdk < 29) {
           final storageStatus = await Permission.storage.request();
           if (!storageStatus.isGranted) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Permiso de almacenamiento denegado')),
-            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Permiso de almacenamiento denegado'),
+                ),
+              );
+            }
             return;
           }
         }
       }
 
+// 📷 Selección de imagen
       final picker = ImagePicker();
-      final picked = await picker.pickImage(source: source, imageQuality: 75);
+      final picked = await picker
+          .pickImage(
+        source: source,
+        imageQuality: 75,
+        preferredCameraDevice: CameraDevice.rear,
+      )
+          .catchError((e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('No se pudo abrir la cámara o galería: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return null;
+      });
 
-      if (picked != null) {
-        setState(() {
-          _selectedImageFile = File(picked.path);
-          _imageUrlController.clear();
-        });
+      if (!mounted || picked == null) return;
 
-        if (!mounted) return;
+// 📐 Recorte cuadrado
+      final croppedFile = await ImageCropper().cropImage(
+        sourcePath: picked.path,
+        aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+        compressQuality: 75,
+        uiSettings: [
+          AndroidUiSettings(
+            toolbarTitle: 'Recortar Imagen',
+            toolbarColor: Colors.teal,
+            hideBottomControls: true,
+            lockAspectRatio: true,
+          ),
+          IOSUiSettings(
+            title: 'Recortar Imagen',
+            aspectRatioLockEnabled: true,
+          ),
+        ],
+      );
+
+      if (croppedFile == null) return;
+
+      final imageFile = File(croppedFile.path);
+
+      if (!await imageFile.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+                content: Text('La imagen seleccionada no es válida')),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _selectedImageFile = imageFile;
+        _imageUrlController.clear();
+      });
+
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Imagen seleccionada')),
         );
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al acceder a la cámara/galería: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al acceder a la cámara/galería: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -165,7 +227,7 @@ class _AddProductViewState extends State<AddProductView> {
               _textField(_descController, 'Descripción'),
               _textField(_priceController, 'Precio',
                   inputType: TextInputType.number),
-              _textField(_stockController, 'Stock',
+              _textField(_stockController, 'Cantidad',
                   inputType: TextInputType.number),
               _textField(_supplierController, 'Proveedor'),
               DropdownButtonFormField<String>(

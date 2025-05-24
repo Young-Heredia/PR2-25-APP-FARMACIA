@@ -20,6 +20,13 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- ✅ NECESARIO PARA image_cropper (UCropActivity) -->
+        <activity
+            android:name="com.yalantis.ucrop.UCropActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -6,7 +6,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="app_farmacia"
+        android:label="App Farmacia"
         android:icon="@mipmap/ic_launcher">
 
         <!-- 📷 NECESARIO PARA ImagePicker CON CÁMARA -->

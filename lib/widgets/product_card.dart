@@ -61,7 +61,7 @@ class ProductCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-if (isExpired)
+                if (isExpired)
                   const Text(
                     'Producto vencido',
                     style: TextStyle(
@@ -69,17 +69,17 @@ if (isExpired)
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
-                  ),                
-                  Text(
-                    name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 16),
-                        ),
+                  ),
+                Text(
+                  name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 16),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   description,
-                    style: const TextStyle(fontSize: 13, color: Colors.grey),
-                    ),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -87,9 +87,9 @@ if (isExpired)
                       onPressed: isExpired ? null : onRemove,
                       icon: Icon(
                         Icons.remove_circle_outline,
-                          size: 20,
-                           color: isExpired ? Colors.grey.shade400 : Colors.red,
-                           ),
+                        size: 20,
+                        color: isExpired ? Colors.grey.shade400 : Colors.red,
+                      ),
                     ),
                     Text(
                       '$quantity',
@@ -99,16 +99,16 @@ if (isExpired)
                       onPressed: isExpired ? null : onAdd,
                       icon: Icon(
                         Icons.add_circle_outline,
-                          size: 20, 
-                          color: isExpired ? Colors.grey.shade400 : Colors.teal,
-                          ),
+                        size: 20,
+                        color: isExpired ? Colors.grey.shade400 : Colors.teal,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
-          
+
           // Precio
           Text(
             'Bs ${price.toStringAsFixed(2)}',

@@ -106,15 +106,50 @@ class _ProductManageViewState extends State<ProductManageView> {
                                   product: p), // PASA EL PRODUCTO
                             ),
                           ).then((_) =>
-                              _refreshProducts()); // Refresca la lista al volver
+                              _refreshProducts());
                         },
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
                         tooltip: 'Eliminar Producto',
                         onPressed: () async {
-                          await service.deleteProduct(p.id);
-                          _refreshProducts();
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('¿Eliminar Producto?'),
+                              content: Text(
+                                  '¿Estás seguro de que deseas eliminar el producto "${p.name}"? Esta acción no se puede deshacer.'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('Cancelar'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                  ),
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Eliminar'),
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            await service.deleteProduct(p.id);
+                            _refreshProducts();
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text('Producto "${p.name}" eliminado.'),
+                                  backgroundColor: Colors.red.shade400,
+                                ),
+                              );
+                            }
+                          }
                         },
                       ),
                     ],

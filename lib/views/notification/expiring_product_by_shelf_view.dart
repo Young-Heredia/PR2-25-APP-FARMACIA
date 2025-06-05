@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:app_farmacia/models/product_model.dart';
 import 'package:app_farmacia/views/product/detail_product_view.dart';
 
-class ExpiringProductByShelfView extends StatelessWidget {
+class ExpiringProductByShelfView extends StatefulWidget {
   final String category;
   final String shelfName;
   final List<ProductModel> products;
@@ -18,13 +18,47 @@ class ExpiringProductByShelfView extends StatelessWidget {
   });
 
   @override
+  State<ExpiringProductByShelfView> createState() =>
+      _ExpiringProductByShelfViewState();
+}
+
+class _ExpiringProductByShelfViewState
+    extends State<ExpiringProductByShelfView> {
+  final TextEditingController _searchController = TextEditingController();
+  List<ProductModel> _filteredProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredProducts = widget.products;
+    _searchController.addListener(_applySearch);
+  }
+
+  void _applySearch() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      _filteredProducts = widget.products.where((p) {
+        return p.name.toLowerCase().contains(query) ||
+            p.description.toLowerCase().contains(query) ||
+            p.supplier.toLowerCase().contains(query);
+      }).toList();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+  
+  @override
   Widget build(BuildContext context) {
-    final totalStock = products.fold<int>(0, (sum, p) => sum + p.stock);
-    final colorMap = _getStyleByCategory(category);
+    final totalStock = _filteredProducts.fold<int>(0, (sum, p) => sum + p.stock);
+    final colorMap = _getStyleByCategory(widget.category);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$category - $shelfName'),
+        title: Text('${widget.category} - ${widget.shelfName}'),
         backgroundColor: colorMap['color'],
       ),
       body: ListView(
@@ -34,14 +68,15 @@ class ExpiringProductByShelfView extends StatelessWidget {
           Card(
             color: colorMap['color'].withOpacity(0.1),
             elevation: 2,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(category,
+                  Text(widget.category,
                       style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -51,7 +86,7 @@ class ExpiringProductByShelfView extends StatelessWidget {
                     children: [
                       const Icon(Icons.inventory_2, size: 20),
                       const SizedBox(width: 6),
-                      Text('Total productos: ${products.length}'),
+                      Text('Total productos: ${_filteredProducts.length}'),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -67,7 +102,7 @@ class ExpiringProductByShelfView extends StatelessWidget {
                     children: [
                       const Icon(Icons.store, size: 20),
                       const SizedBox(width: 6),
-                      Text('Estante: $shelfName'),
+                      Text('Estante: ${widget.shelfName}'),
                     ],
                   ),
                 ],
@@ -77,8 +112,25 @@ class ExpiringProductByShelfView extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // 🔸 Lista de productos con navegación al detalle
-          ...products.map((p) => GestureDetector(
+         // 🔍 Campo de búsqueda
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Buscar por nombre, proveedor o descripción...',
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // 🔸 Lista filtrada
+          if (_filteredProducts.isEmpty)
+            const Center(child: Text('No se encontraron coincidencias.')),
+
+          ..._filteredProducts.map((p) => GestureDetector(
                 onTap: () {
                   Navigator.push(
                     context,

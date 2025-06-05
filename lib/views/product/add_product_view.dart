@@ -23,7 +23,7 @@ class _AddProductViewState extends State<AddProductView> {
   final _formKey = GlobalKey<FormState>();
   final _service = FirebaseProductService();
   final CloudinaryService cloudinary = CloudinaryService(
-    cloudName: 'duiiqydcv',
+    cloudName: 'dxzeoxji9',
     uploadPreset: 'pr2_25_app_farmacia',
   );
 
